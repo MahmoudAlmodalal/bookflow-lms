@@ -4,6 +4,10 @@
 
 BookFlow LMS is a Django application that gives small libraries a clear operational view of their books. It combines inventory statistics, searchable catalogue management, category organization, media uploads, and safe edit/delete workflows in a focused interface.
 
+## Live demo
+
+Try the public [BookFlow interactive demo](https://mahmoudalmodalal.github.io/bookflow-lms/) on GitHub Pages. It presents the production-style Arabic RTL interface with sample data and working search/status/category filters; the complete Django backend remains available in this repository.
+
 ## Product overview
 
 The project is designed around the daily workflow of a library manager rather than a generic e-commerce store. The dashboard shows the current inventory split between available, rented, and sold books, while the catalogue supports title/author search and filtering by status or category.
@@ -62,6 +66,8 @@ DATABASE_URL=postgresql://user:password@host:5432/bookflow
 
 Vercel detects the Django project from `manage.py` and the WSGI entry point in `lms/wsgi.py`. Connect this repository to a Vercel project, configure the environment variables above, and deploy the `main` branch. The included `vercel.json` sets the WSGI function duration and the build automatically collects static assets.
 
+For a no-login public preview, use the [GitHub Pages demo](https://mahmoudalmodalal.github.io/bookflow-lms/). GitHub Pages hosts the static interactive presentation, while Vercel or another WSGI host is appropriate for the full Django application.
+
 > SQLite is suitable for a portfolio/demo deployment. For persistent writes in a real production environment, use PostgreSQL and external object storage for uploaded media.
 
 ## Project structure
@@ -91,4 +97,4 @@ python manage.py collectstatic --noinput
 
 ## License
 
-This project is released under the MIT License. See `LICENSE` if a license file is added to the repository.
+This project is released under the MIT License; see [`LICENSE`](LICENSE).
