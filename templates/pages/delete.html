@@ -1,36 +1,17 @@
 {% extends "base.html" %}
 
+{% block title %}حذف {{ book.title }} · BookFlow LMS{% endblock %}
+{% block breadcrumb %}حذف كتاب{% endblock %}
+
 {% block content %}
-
-<div style="direction: rtl;" class="wrapper">
-
-    <!-- Content Wrapper. Contains page content -->
-    <div   class="content-wrapper">
-      <!-- Content Header (Page header) -->
-  <div  class="card card-danger">
-      <div class="card-header">
-        <h3 class="card-title">حذف الكتاب</h3>
-      </div>
-      <!-- /.card-header -->
-      <!-- form start -->
-      <form  method="POST" enctype="multipart/form-data">
+<div class="confirm-card">
+    <div class="confirm-icon">⌫</div>
+    <h1>حذف الكتاب؟</h1>
+    <p>أنت على وشك حذف «{{ book.title }}» نهائياً من سجلات المكتبة. لا يمكن التراجع عن هذا الإجراء.</p>
+    <form class="confirm-actions" method="post">
         {% csrf_token %}
-        {{ form }}
-        <div class="row">
-          
-       <p class="p-3">هل تريد حقاً حذف الكتاب؟</p>
-   
-        </div>
-        <!-- /.card-body -->
-  
-        <div class="card-footer">
-          <button type="submit" class="btn btn-danger">حذف</button>
-  
-          <a href="{% url 'index' %}" type="button" class="btn btn-success">تراجع</a>
-        </div>
-      </form>
-    </div>
-  </div>
-  </div>
-
-{% endblock  %}
+        <a class="btn btn-light" href="{% url 'book' %}">تراجع</a>
+        <button class="btn btn-danger" type="submit">نعم، احذف الكتاب</button>
+    </form>
+</div>
+{% endblock %}

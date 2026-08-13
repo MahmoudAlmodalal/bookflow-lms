@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+.env
+.env.*
+!.env.example
+
+# Django
+*.log
+db.sqlite3-journal
+staticfiles/
+media/
+
+# Tooling
+.vscode/
+.idea/
+.DS_Store
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Deployment metadata
+.vercel/

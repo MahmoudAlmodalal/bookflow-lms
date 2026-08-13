@@ -1,225 +1,127 @@
-{% extends 'base.html' %}
-{% block content%}
-<div style="direction: rtl;" class="wrapper">
+{% extends "base.html" %}
 
+{% block title %}نظرة عامة · BookFlow LMS{% endblock %}
+{% block breadcrumb %}نظرة عامة{% endblock %}
 
-
-
-    <!-- Content Wrapper. Contains page content -->
-    <div   class="content-wrapper">
-      <!-- Content Header (Page header) -->
-  
-  
-      <!--الاحصائيات-->
-
-      <div class="content">
-        <div class="container-fluid">
-          <div class="row">
-            <div class="col-lg-6">
-              <div class="card">
-                <div class="card-header border-0">
-                  <div class="d-flex justify-content-between">
-                    <h3 class="card-title">اجمالي عدد الكتب</h3>                    
-                  </div>
-                </div>
-                <div class="card-body">
-                  <div class="d-flex">
-                    <p class="d-flex flex-column">
-                      <span class="text-bold text-lg">{{allBooks}}</span>
-                      <span>اجمالي عدد الكتب</span>
-                    </p>  
-                  </div>
-                  <!-- /.d-flex -->
-
-                  <div class="position-relative mb-4">
-                    <canvas id="visitors-chart" height="200"></canvas>
-                  </div>  
-                </div>
-              </div>
-              <!-- /.card -->
-            </div>
-            <!-- /.col-md-6 -->
-            {% for book in books %}
-            {% if book.price != None %}
-            {% if book.statas == 'sold' %}
-            <p class='totalSold'>{{book.price}}</p>
-            {% endif %}
-            {% endif %}
-            {% if book.total_rental_price != None %}
-            {% if book.statas == 'rental' %}
-            <p class='totalRental'>{{book.total_rental_price}}</p>
-            {% endif %}
-            {% endif %}
-            {% endfor %}
-            <p class='sold'></p>
-            <p class='rental'></p>
-            <div class="col-lg-6">
-              <div class="card">
-                <div class="card-header border-0">
-                  <div class="d-flex justify-content-between">
-                    <h3 class="card-title">الارباح</h3>   
-                  </div>
-                </div>    
-                <div class="card-body">
-                  <div class="d-flex">
-                    <p class="d-flex flex-column">
-                      <span id="totalsalarys" class="text-bold text-lg">$</span><br></p>
-                  </div>
-                  <!-- /.d-flex -->
-  
-                  <div class="position-relative mb-4">
-                    <canvas id="sales-chart" height="160"></canvas>
-                  </div>
-  
-                  <div class="d-flex flex-row justify-content-end">
-                    <span class="mr-2">
-                      <i class="fas fa-square text-primary"></i> الاربح من بيع الكتب
-                      <p id="soldtotals"></p>     
-                    </span>
-                    <span>
-                      <i class="fas fa-square text-gray"></i> الارباح من استعارة الكتب
-                      <p id="rentedtotals"></p>
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-        
-            <!-- /.col-md-6 -->
-          </div>
-          <!-- /.row -->
-  
-          <!-- form add books -->
-          <div class="row m-1 mb-3">   
-            <a href="#bookform" class="btn btn-primary" data-toggle="collapse">+ اضافة كتاب</a>
-          </div>
-          
-          <div id="bookform" class="card card-primary collapse">
-            <div class="card-header">
-              <h3 class="card-title">اضافة كتاب</h3>
-            </div>
-            <!-- /.card-header -->
-            <!-- form start -->
-            <form method="POST" enctype="multipart/form-data"  > 
-              {% csrf_token %}
-              <div class="card-body"> 
-                {{ bookForm }}
-              </div>
-              <!-- /.card-body -->
-              <div class="card-footer">
-                <button type="submit" class="btn btn-primary">اضافة</button>
-              </div>
-            </form>
-          </div>
-  
-                <!-- /.card -->
-          </div>
-          <!-- end form add books -->
-  
-  
-          <!-- تصنيفات-->
-  
-          <div class="row justify-content-center mb-3">
-            <div class="col-4 ">
-              <ul class="nav">
-                {% for cat in category|slice:'4' %}
-                <li class="nav-item cat{{cat.id}}">
-                  <a id="" class="nav-link bg-primary" href="#">{{cat.name}}</a>
-                </li>
-                {% endfor %}
-              </ul>
-            </div>
-          </div>
-          <!-- books -->
-
-          <div class="row">  
-            {% for book in books %}           
-          <!-- الكتب -->
-              <div id="" class="col-md-4 bookhide book{{book.category.id}} book{{book.statas}}">
-                  <!-- Widget: user widget style 1 -->
-                <div id="" class="card card-widget widget-user ">
-                  <!-- Add the bg color to the header using any of the bg-* classes -->
-                <!-- قائمة منسدلة -->
-                <div style="position: absolute;" class="btn-group">   
-                  <button type="button" class="btn dropdown-toggle dropdown-toggle-split" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                    <span class="sr-only">Toggle Dropdown</span>
-                  </button>
-                  <div class="dropdown-menu">
-                    <a class="dropdown-item" href="{% url 'update' book.id %}">تعديل</a>
-                    <a class="dropdown-item" href="{% url 'delete' book.id %}">حذف</a>
-                <!-- Button trigger modal -->
-                  </div>
-                </div>
-                {% if book.photo_book %}
-                <div style="background: url(
-                {{book.photo_book.url}}); background-size: cover;" class="widget-user-header bg-info">
-                {% else  %}
-                <div class="widget-user-header bg-info">
-                {% endif %}
-                  <h3 class="widget-user-username">{{book.title}} </h3>
-                  <h5 class="widget-user-desc"> {{book.author}}</h5>
-                </div>
-                <div class="widget-user-image">
-                  {% if book.photo_author %}
-                  <img style="width:100px; height: 100px;" class="img-circle elevation-2" src="{{book.photo_author.url}}" alt="User Avatar">
-                  {% endif %}
-                </div>
-                <div class="card-footer">
-                  <div class="row">
-                    <div class="col-sm-4 border-right">
-                      <div class="description-block">
-                        <h5 class="description-header">{{book.pages}}</h5>
-                        <span class="description-text">صفحة</span>
-                      </div>
-                      <!-- /.description-block -->
-                    </div>
-                        <!-- /.col -->
-                    <div class="col-sm-4 border-right">
-                      <div class="description-block">
-                        {% if book.price %}
-                        <h5 class="description-header">${{book.price}}</h5>
-                        <span class="description-text">السعر</span>
-                        {% elif book.retal_price_day%}
-                        <h5 class="description-header">${{book.retal_price_day}}</h5>
-                        <span class="description-text">السعر في اليوم</span>
-                        {% endif %}
-                      </div>
-                      <!-- /.description-block -->
-                    </div>
-                        <!-- /.col -->
-                    <div class="col-sm-4">
-                      <div class="description-block">
-                        {% if book.statas == 'avalable' %}
-                        <h5 class="description-header text-success">{{book.statas}}</h5>
-                        <span class="description-text">الحالة</span>
-                        {% elif book.statas == 'rental' %}
-                        <h5 class="description-header text-warning">{{book.statas}}</h5>
-                        <span class="description-text">الحالة</span>
-                        {% else %}
-                        <h5 class="description-header text-danger">{{book.statas}}</h5>
-                        <span class="description-text">الحالة</span>
-                        {% endif %}
-                      </div>
-                      <!-- /.description-block -->
-                    </div>
-                        <!-- /.col -->
-                  </div>
-                      <!-- /.row -->
-                </div>
-                </div>
-                  <!-- /.widget-user -->
-              </div>
-          <!-- نهاية الكتاب --> 
-          {% endfor %}  
-              <div class="row">
-                <div class="col text-center">
-                  <!--اضف صورة هنا في حالة عدم وجود كتب-->   
-                </div>
-              </div>
-          </div>    
-      </div>
+{% block content %}
+<div class="page-heading">
+    <div>
+        <p class="eyebrow">لوحة التحكم</p>
+        <h1>أهلاً بك في BookFlow</h1>
+        <p>نظرة مركّزة على مخزون مكتبتك وحالة الكتب والإيرادات في مكان واحد.</p>
     </div>
-        <!-- /.container-fluid -->
-  </div>
+    <a class="btn btn-primary" href="#add-book">＋ إضافة كتاب جديد</a>
 </div>
-{% endblock%}
+
+<section class="stats-grid" aria-label="مؤشرات المكتبة">
+    <article class="stat-card">
+        <div class="stat-top"><span>إجمالي الكتب</span><span class="stat-icon">▤</span></div>
+        <strong class="stat-value">{{ total_books }}</strong>
+        <span class="stat-caption">كتاب نشط في مكتبتك</span>
+    </article>
+    <article class="stat-card">
+        <div class="stat-top"><span>كتب متاحة</span><span class="stat-icon">✓</span></div>
+        <strong class="stat-value">{{ available_books }}</strong>
+        <span class="stat-caption">جاهزة للإعارة أو البيع</span>
+    </article>
+    <article class="stat-card">
+        <div class="stat-top"><span>كتب مُعارة</span><span class="stat-icon">↗</span></div>
+        <strong class="stat-value">{{ rented_books }}</strong>
+        <span class="stat-caption">قيد الإعارة حالياً</span>
+    </article>
+    <article class="stat-card">
+        <div class="stat-top"><span>كتب مباعة</span><span class="stat-icon">◆</span></div>
+        <strong class="stat-value">{{ sold_books }}</strong>
+        <span class="stat-caption">تم تسجيلها كمباعة</span>
+    </article>
+</section>
+
+<section class="dashboard-grid">
+    <article class="panel">
+        <div class="panel-header">
+            <div><h2>توزيع حالة المخزون</h2><p>قراءة سريعة لتوازن مكتبتك</p></div>
+            <span class="status-chip status-available">محدّث الآن</span>
+        </div>
+        <div class="panel-body status-overview">
+            <div class="status-row"><span>متاح</span><div class="status-track"><div class="status-fill available" style="width: {{ available_percent }}%"></div></div><strong class="status-count">{{ available_books }}</strong></div>
+            <div class="status-row"><span>مُعار</span><div class="status-track"><div class="status-fill rented" style="width: {{ rented_percent }}%"></div></div><strong class="status-count">{{ rented_books }}</strong></div>
+            <div class="status-row"><span>مباع</span><div class="status-track"><div class="status-fill sold" style="width: {{ sold_percent }}%"></div></div><strong class="status-count">{{ sold_books }}</strong></div>
+        </div>
+    </article>
+
+    <article class="quick-form" id="categories">
+        <p class="eyebrow">تنظيم أسرع</p>
+        <h2>أضف تصنيفاً</h2>
+        <p>اجعل الوصول إلى كتبك أسهل عبر تصنيفات واضحة.</p>
+        <form method="post" action="{% url 'index' %}">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="add_category">
+            {% for field in category_form %}
+                <div class="field">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {{ field.errors }}
+                </div>
+            {% endfor %}
+            <button class="btn btn-primary btn-block" type="submit">حفظ التصنيف</button>
+        </form>
+    </article>
+</section>
+
+<section class="panel form-section" id="add-book">
+    <div class="panel-header">
+        <div><h2>إضافة كتاب إلى المخزون</h2><p>أدخل البيانات الأساسية ليظهر الكتاب في الكتالوج.</p></div>
+        <span class="eyebrow">نموذج جديد</span>
+    </div>
+    <div class="panel-body">
+        <form method="post" action="{% url 'index' %}" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="add_book">
+            {{ book_form.non_field_errors }}
+            <div class="form-grid">
+                {% for field in book_form %}
+                    <div class="field {% if field.name == 'photo_book' or field.name == 'photo_author' %}field-full{% endif %}">
+                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {{ field }}
+                        {{ field.errors }}
+                    </div>
+                {% endfor %}
+            </div>
+            <div class="form-actions"><button class="btn btn-primary" type="submit">إضافة الكتاب</button></div>
+        </form>
+    </div>
+</section>
+
+<div class="section-heading">
+    <div><h2>أحدث الكتب</h2><p>آخر العناصر المضافة إلى مكتبتك.</p></div>
+    <a class="heading-link" href="{% url 'book' %}">عرض الكتالوج الكامل ←</a>
+</div>
+
+{% if books %}
+    <section class="book-grid" aria-label="أحدث الكتب">
+        {% for book in books|slice:":6" %}
+            <article class="book-card">
+                {% if book.photo_book %}
+                    <div class="book-cover has-image" style="background-image: linear-gradient(180deg, rgba(24,35,61,.03), rgba(24,35,61,.72)), url('{{ book.photo_book.url }}');">
+                {% else %}
+                    <div class="book-cover">
+                {% endif %}
+                    <span class="book-cover-title">{{ book.title }}</span>
+                </div>
+                <div class="book-body">
+                    <div class="book-meta"><span class="book-category">{{ book.category|default:"بدون تصنيف" }}</span><span class="status-chip {{ book.status_class }}">{{ book.status_label }}</span></div>
+                    <h3 title="{{ book.title }}">{{ book.title }}</h3>
+                    <p class="book-author">{{ book.author|default:"المؤلف غير مضاف" }}</p>
+                    <div class="book-details">
+                        <span><strong>{{ book.pages|default:"—" }}</strong>صفحة</span>
+                        <span><strong>{% if book.price %}{{ book.price }}{% elif book.retal_price_day %}{{ book.retal_price_day }}{% else %}—{% endif %}</strong>{% if book.price %}ر.س{% elif book.retal_price_day %}ر.س / يوم{% else %}السعر{% endif %}</span>
+                    </div>
+                    <div class="book-actions"><a class="btn btn-light" href="{% url 'update' book.id %}">تعديل</a><a class="btn btn-danger" href="{% url 'delete' book.id %}">حذف</a></div>
+                </div>
+            </article>
+        {% endfor %}
+    </section>
+{% else %}
+    <div class="empty-state"><div class="empty-icon">＋</div><h3>لم تضف كتباً بعد</h3><p>ابدأ بإضافة أول كتاب من النموذج أعلاه.</p></div>
+{% endif %}
+{% endblock %}

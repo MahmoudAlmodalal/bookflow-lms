@@ -1,31 +1,35 @@
 {% extends "base.html" %}
 
-{% block content  %}
+{% block title %}تعديل {{ book.title }} · BookFlow LMS{% endblock %}
+{% block breadcrumb %}تعديل كتاب{% endblock %}
 
-<div style="direction: rtl;" class="wrapper">
-
-    <!-- Content Wrapper. Contains page content -->
-    <div   class="content-wrapper">
-      <!-- Content Header (Page header) -->
-  <div  class="card card-primary">
-      <div class="card-header">
-        <h3 class="card-title">تعديل الكتاب</h3>
-      </div>
-      <!-- /.card-header -->
-      <!-- form start -->
-      <form  method="POST" enctype="multipart/form-data">
-        {% csrf_token %}
-        <div class="card-body">
-          {{form}}
-        </div>
-        <!-- /.card-body -->
-  
-        <div class="card-footer">
-          <button type="submit" class="btn btn-primary">حفظ</button>
-        </div>
-      </form>
+{% block content %}
+<div class="page-heading">
+    <div>
+        <p class="eyebrow">إدارة المخزون</p>
+        <h1>تعديل بيانات الكتاب</h1>
+        <p>حدّث معلومات «{{ book.title }}» ثم احفظ التغييرات لتظهر مباشرة في الكتالوج.</p>
     </div>
-  </div>
-  </div>
+    <a class="btn btn-light" href="{% url 'book' %}">العودة إلى الكتالوج</a>
+</div>
 
-{% endblock  %}
+<section class="panel">
+    <div class="panel-header"><div><h2>بيانات الكتاب</h2><p>يمكنك تعديل أي حقل أو استبدال الصور الحالية.</p></div></div>
+    <div class="panel-body">
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            {{ form.non_field_errors }}
+            <div class="form-grid">
+                {% for field in form %}
+                    <div class="field {% if field.name == 'photo_book' or field.name == 'photo_author' %}field-full{% endif %}">
+                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {{ field }}
+                        {{ field.errors }}
+                    </div>
+                {% endfor %}
+            </div>
+            <div class="form-actions"><a class="btn btn-light" href="{% url 'book' %}">إلغاء</a><button class="btn btn-primary" type="submit">حفظ التغييرات</button></div>
+        </form>
+    </div>
+</section>
+{% endblock %}

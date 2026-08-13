@@ -1,0 +1,5 @@
+Django>=5.2,<5.3
+Pillow>=11,<12
+python-dotenv>=1.0,<2
+dj-database-url>=2.2,<3
+whitenoise>=6.9,<7

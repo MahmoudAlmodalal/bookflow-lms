@@ -1,83 +1,58 @@
 {% extends "base.html" %}
-{% load static %}
+
+{% block title %}كتالوج الكتب · BookFlow LMS{% endblock %}
+{% block breadcrumb %}كتالوج الكتب{% endblock %}
 
 {% block content %}
-
-<div style="direction: rtl;" class="wrapper">
-    <!-- Content Wrapper. Contains page content -->
-    <div   class="content-wrapper p-5">
-      <!-- Content Header (Page header) -->
-
-              <div class="row mb-2">
-                <div class="col-sm-6">
-                  <h1>الكتب</h1>
-                </div>
- 
-              </div>
-          </section>
-      
-          <!-- Main content -->
-          <section class="content">                  
-            <!-- Default box -->
-            <div class="card card-solid">
-              <div class="card-body pb-0">
-                <div class="row d-flex align-items-stretch">
-                  {% for book in books %}
-                   <!-- نهاية الكتاب -->                    <!-- بداية الكتاب -->
-                  <div   class="col-12 col-sm-6 col-md-4 d-flex align-items-stretch ">
-                    <div  id="" class="card bg-light">
-                      <div  class="card-header text-muted border-bottom-0">
-                        تصنيف الكتاب
-                      </div>
-                      <div class="card-body pt-0">
-                        <div class="row">
-                          <div class="col-7">
-                            <h2 class="lead"><b>{{book.title}}</b></h2>
-                            <ul class="  fa-ul text-muted">
-                              <li class="small"><span class="fa-li"></span>الحالة: {{book.statas}}</li>
-                              <li class="small"><span class="fa-li"></span>السعر: ${{book.price}}</li>
-                            </ul>
-                          </div>
-                          <div class="col-5 text-center">
-                            {% if book.photo_book %}
-                              <img style="height: 120px; width: 120px;"  src="{{book.photo_book.url}}" alt="" class="img-circle img-fluid">
-                              {% else %}
-                              <img style="height: 120px; width: 120px;"  src="{% static 'dist/img/photo1.png'%}" alt="" class="img-circle img-fluid">
-                              {% endif %}
-                    
-                            </div>
-                        </div>
-                      </div>
-                      <div class="card-footer">
-                        <div class="text-right">
-                          <a href="{% url 'delete' book.id %}" class="btn btn-sm bg-danger">
-                            <i class="fas fa-trash"></i>
-                          </a>
-                          <a href="{% url 'update' book.id %}" class="btn btn-sm btn-primary">
-                            <i class="fas fa-book"></i> تعديل
-                          </a>
-                        </div>
-                      </div>
-                    </div>
-                    
-                  </div>
-                  {% endfor %}
-                   <!-- نهاية الكتاب -->
-                </div>
-              </div>
-              <!-- /.card-body -->
-
-              <!-- /.card-footer -->
-            </div>
-            <!-- /.card -->
-      
-          </section>
-          <!-- /.content -->
-        </div>
-        <!-- /.content-wrapper -->
-      
+<div class="page-heading">
+    <div>
+        <p class="eyebrow">المخزون</p>
+        <h1>كتالوج الكتب</h1>
+        <p>ابحث في مجموعتك، وفلتر النتائج حسب الحالة أو التصنيف، ثم حدّث بيانات أي كتاب.</p>
     </div>
-    <!-- /.content-wrapper -->
-  </div>
+    <a class="btn btn-primary" href="{% url 'index' %}#add-book">＋ إضافة كتاب</a>
+</div>
 
-  {% endblock %}
+<form class="search-toolbar" method="get" action="{% url 'book' %}">
+    <div class="search-input"><label class="sr-only" for="search-query">ابحث في الكتب</label><input class="form-control" id="search-query" name="q" value="{{ query }}" placeholder="ابحث بالعنوان أو اسم المؤلف"></div>
+    <select class="form-control" name="status" aria-label="تصفية حسب الحالة">
+        <option value="">كل الحالات</option>
+        {% for value, label in status_choices %}<option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+    <select class="form-control" name="category" aria-label="تصفية حسب التصنيف">
+        <option value="">كل التصنيفات</option>
+        {% for category in categories %}<option value="{{ category.id }}" {% if selected_category == category.id|stringformat:"s" %}selected{% endif %}>{{ category.name }}</option>{% endfor %}
+    </select>
+    <button class="btn btn-primary" type="submit">تطبيق الفلاتر</button>
+</form>
+
+<div class="section-heading"><div><h2>النتائج</h2><p>تم العثور على {{ books|length }} كتاب ضمن الفلاتر الحالية.</p></div>{% if query or selected_status or selected_category %}<a class="heading-link" href="{% url 'book' %}">مسح الفلاتر ×</a>{% endif %}</div>
+
+{% if books %}
+<section class="book-grid" aria-label="نتائج البحث">
+    {% for book in books %}
+        <article class="book-card">
+            {% if book.photo_book %}
+                <div class="book-cover has-image" style="background-image: linear-gradient(180deg, rgba(24,35,61,.03), rgba(24,35,61,.72)), url('{{ book.photo_book.url }}');">
+            {% else %}
+                <div class="book-cover">
+            {% endif %}
+                <span class="book-cover-title">{{ book.title }}</span>
+            </div>
+            <div class="book-body">
+                <div class="book-meta"><span class="book-category">{{ book.category|default:"بدون تصنيف" }}</span><span class="status-chip {{ book.status_class }}">{{ book.status_label }}</span></div>
+                <h3 title="{{ book.title }}">{{ book.title }}</h3>
+                <p class="book-author">{{ book.author|default:"المؤلف غير مضاف" }}</p>
+                <div class="book-details">
+                    <span><strong>{{ book.pages|default:"—" }}</strong>صفحة</span>
+                    <span><strong>{% if book.price %}{{ book.price }}{% elif book.retal_price_day %}{{ book.retal_price_day }}{% else %}—{% endif %}</strong>{% if book.price %}ر.س{% elif book.retal_price_day %}ر.س / يوم{% else %}السعر{% endif %}</span>
+                </div>
+                <div class="book-actions"><a class="btn btn-light" href="{% url 'update' book.id %}">تعديل</a><a class="btn btn-danger" href="{% url 'delete' book.id %}">حذف</a></div>
+            </div>
+        </article>
+    {% endfor %}
+</section>
+{% else %}
+    <div class="empty-state"><div class="empty-icon">⌕</div><h3>لا توجد نتائج مطابقة</h3><p>جرّب تغيير عبارة البحث أو إزالة أحد الفلاتر.</p></div>
+{% endif %}
+{% endblock %}
