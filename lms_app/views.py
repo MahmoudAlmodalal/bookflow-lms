@@ -1,7 +1,7 @@
 """Views for the BookFlow inventory dashboard."""
 
 from django.contrib import messages
-from django.db.models import Q, Sum
+from django.db.models import Count, Q, Sum
 from django.shortcuts import get_object_or_404, redirect, render
 
 from .forms import BookForm, CategoryForm
@@ -19,6 +19,26 @@ def _dashboard_context(*, book_form=None, category_form=None):
     rented_books = books.filter(statas=Book.STATUS_RENTED).count()
     sold_books = books.filter(statas=Book.STATUS_SOLD).count()
     denominator = max(total_books, 1)
+    status_segments = [
+        {"label": "متاح", "count": available_books, "color": "#13a39a"},
+        {"label": "مُعار", "count": rented_books, "color": "#ed9947"},
+        {"label": "مباع", "count": sold_books, "color": "#e06470"},
+    ]
+    cursor = 0
+    donut_segments = []
+    for segment in status_segments:
+        segment["percent"] = round(segment["count"] / denominator * 100)
+        next_cursor = cursor + (segment["count"] / denominator * 100)
+        donut_segments.append(f"{segment['color']} {cursor:.2f}% {next_cursor:.2f}%")
+        cursor = next_cursor
+    category_stats = list(
+        Category.objects.annotate(book_count=Count("books"))
+        .filter(book_count__gt=0)
+        .order_by("-book_count", "name")[:4]
+    )
+    largest_category_count = max((item.book_count for item in category_stats), default=1)
+    for item in category_stats:
+        item.chart_width = round(item.book_count / largest_category_count * 100)
     return {
         "books": books,
         "categories": Category.objects.all(),
@@ -31,6 +51,10 @@ def _dashboard_context(*, book_form=None, category_form=None):
         "available_percent": round(available_books / denominator * 100),
         "rented_percent": round(rented_books / denominator * 100),
         "sold_percent": round(sold_books / denominator * 100),
+        "status_segments": status_segments,
+        "donut_style": "conic-gradient(" + ", ".join(donut_segments) + ")",
+        "category_stats": category_stats,
+        "availability_score": round(available_books / denominator * 100),
         "sales_revenue": totals["sales_revenue"] or 0,
         "rental_revenue": totals["rental_revenue"] or 0,
     }

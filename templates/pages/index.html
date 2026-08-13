@@ -36,17 +36,34 @@
     </article>
 </section>
 
-<section class="dashboard-grid">
-    <article class="panel">
-        <div class="panel-header">
-            <div><h2>توزيع حالة المخزون</h2><p>قراءة سريعة لتوازن مكتبتك</p></div>
-            <span class="status-chip status-available">محدّث الآن</span>
+<section class="dashboard-analytics" aria-label="تحليلات المخزون">
+    <article class="panel analytics-panel">
+        <div class="panel-header"><div><h2>توزيع حالة المخزون</h2><p>مؤشر بصري يعتمد على السجلات الفعلية</p></div><span class="analytics-badge">مباشر</span></div>
+        <div class="inventory-distribution">
+            <div class="inventory-donut" style="background: {{ donut_style }};"><div class="donut-center"><strong>{{ total_books }}</strong><span>إجمالي الكتب</span></div></div>
+            <div class="inventory-legend">
+                {% for segment in status_segments %}<div class="legend-row"><span class="legend-dot" style="background: {{ segment.color }};"></span><span>{{ segment.label }}</span><strong>{{ segment.count }}</strong><small>{{ segment.percent }}%</small></div>{% endfor %}
+            </div>
         </div>
-        <div class="panel-body status-overview">
-            <div class="status-row"><span>متاح</span><div class="status-track"><div class="status-fill available" style="width: {{ available_percent }}%"></div></div><strong class="status-count">{{ available_books }}</strong></div>
-            <div class="status-row"><span>مُعار</span><div class="status-track"><div class="status-fill rented" style="width: {{ rented_percent }}%"></div></div><strong class="status-count">{{ rented_books }}</strong></div>
-            <div class="status-row"><span>مباع</span><div class="status-track"><div class="status-fill sold" style="width: {{ sold_percent }}%"></div></div><strong class="status-count">{{ sold_books }}</strong></div>
+    </article>
+
+    <article class="panel analytics-panel">
+        <div class="panel-header"><div><h2>خريطة التصنيفات</h2><p>أكثر مجموعات الكتب حضوراً في المكتبة</p></div><span class="analytics-badge">تحليل</span></div>
+        <div class="category-bars">
+            {% for category in category_stats %}<div class="category-bar-row"><span>{{ category.name }}</span><div class="category-track"><div class="category-fill" style="width: {{ category.chart_width }}%"></div></div><strong>{{ category.book_count }}</strong></div>{% empty %}<p class="muted-copy">أضف كتباً مصنفة لرؤية التوزيع هنا.</p>{% endfor %}
         </div>
+    </article>
+
+    <article class="availability-insight">
+        <div><p class="eyebrow">مؤشر التوفر</p><h2>جاهزية المكتبة</h2><p>{% if availability_score >= 50 %}المخزون متوازن ونسبة التوفر جيدة الآن.{% else %}نسبة التوفر منخفضة؛ تابع إعادات الكتب لتعزيزها.{% endif %}</p></div>
+        <div class="readiness-meter"><strong>{{ availability_score }}<small>%</small></strong><span class="readiness-ring" style="--readiness: {{ availability_score }}%"><i>{{ availability_score }}%</i></span></div>
+    </article>
+</section>
+
+<section class="dashboard-grid dashboard-management">
+    <article class="panel revenue-panel">
+        <div class="panel-header"><div><h2>أداء العوائد المسجّلة</h2><p>ملخص إيرادات البيع والإعارة من السجلات الحالية</p></div><span class="analytics-badge">مالي</span></div>
+        <div class="revenue-grid"><div><span>إيرادات المبيعات</span><strong>{{ sales_revenue }} <small>ر.س</small></strong></div><div><span>إيرادات الإعارة</span><strong>{{ rental_revenue }} <small>ر.س</small></strong></div></div>
     </article>
 
     <article class="quick-form" id="categories">

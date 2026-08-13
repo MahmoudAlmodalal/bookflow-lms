@@ -24,7 +24,11 @@ class LibraryDashboardTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "كتاب تجريبي")
         self.assertContains(response, "BookFlow")
+        self.assertContains(response, "توزيع حالة المخزون")
         self.assertEqual(response.context["available_books"], 1)
+        self.assertEqual(response.context["availability_score"], 100)
+        self.assertEqual(response.context["status_segments"][0]["count"], 1)
+        self.assertEqual(response.context["category_stats"][0].book_count, 1)
 
     def test_dashboard_can_create_a_category(self):
         response = self.client.post(
