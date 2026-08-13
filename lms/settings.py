@@ -107,11 +107,10 @@ USE_TZ = True
 
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
-STATICFILES_DIRS = [
-    path
-    for path in (BASE_DIR / "lms" / "static", BASE_DIR / "static")
-    if path.exists()
-]
+# App-level static directories are discovered automatically by Django. Keeping
+# this list empty avoids shipping the legacy AdminLTE bundle that BookFlow no
+# longer references.
+STATICFILES_DIRS = []
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
     "staticfiles": {"BACKEND": "whitenoise.storage.CompressedStaticFilesStorage"},
