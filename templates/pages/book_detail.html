@@ -33,7 +33,7 @@
             <div><span>مدة الإعارة</span><strong>{% if book.rental_period %}{{ book.rental_period }} أيام{% else %}—{% endif %}</strong></div>
         </div>
 
-        <div class="detail-actions"><a class="btn btn-primary" href="#write-review">✦ أضف مراجعتك</a><a class="btn btn-light" href="{% url 'update' book.id %}">تعديل بيانات الكتاب</a></div>
+        <div class="detail-actions">{% if book.is_purchasable %}<form method="post" action="{% url 'add-to-cart' book.id %}">{% csrf_token %}<input type="hidden" name="next" value="{% url 'book-detail' book.id %}"><button class="btn btn-primary" type="submit">🛒 أضف للسلة</button></form>{% endif %}<a class="btn btn-light" href="#write-review">✦ أضف مراجعتك</a><a class="btn btn-light" href="{% url 'update' book.id %}">تعديل بيانات الكتاب</a></div>
     </div>
 
     <aside class="rating-summary-card" aria-label="ملخص التقييم">

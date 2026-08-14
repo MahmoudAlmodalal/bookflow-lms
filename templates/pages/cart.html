@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}سلة الطلب · BookFlow LMS{% endblock %}
+{% block breadcrumb %}سلة الطلب{% endblock %}
+
+{% block content %}
+<div class="page-heading">
+    <div>
+        <p class="eyebrow">الطلب</p>
+        <h1>سلة الطلب</h1>
+        <p>راجع العناوين المتاحة قبل الانتقال إلى إتمام الدفع التجريبي.</p>
+    </div>
+    <a class="btn btn-light" href="{% url 'book' %}">← العودة إلى الكتالوج</a>
+</div>
+
+{% if items %}
+<section class="commerce-layout">
+    <article class="cart-list" aria-label="كتب سلة الطلب">
+        <div class="section-heading"><div><h2>العناوين المختارة</h2><p>{{ items|length }} كتاب جاهز للطلب.</p></div></div>
+        {% for book in items %}
+            <div class="cart-item">
+                <div class="cart-cover">{{ book.title }}</div>
+                <div><h3>{{ book.title }}</h3><p>{{ book.author|default:"المؤلف غير مضاف" }} · {{ book.category|default:"بدون تصنيف" }}</p><p class="cart-price">{{ book.price }} ر.س</p></div>
+                <form method="post" action="{% url 'remove-from-cart' book.id %}">{% csrf_token %}<button class="cart-remove" type="submit">إزالة</button></form>
+            </div>
+        {% endfor %}
+    </article>
+
+    <aside class="order-summary">
+        <h2>ملخص الطلب</h2><p>لا توجد رسوم شحن في نسخة العرض.</p>
+        <div class="summary-row"><span>العناوين</span><strong>{{ items|length }}</strong></div>
+        <div class="summary-row"><span>الشحن</span><strong>مجاني</strong></div>
+        <div class="summary-row total"><span>الإجمالي</span><strong>{{ subtotal }} ر.س</strong></div>
+        <a class="btn btn-primary" href="{% url 'checkout' %}">متابعة إلى الدفع التجريبي ←</a>
+        <p class="demo-payment-note"><strong>تنبيه:</strong> هذه رحلة شراء تجريبية. لن تُطلب أو تُخزّن أي بيانات بطاقات بنكية.</p>
+    </aside>
+</section>
+{% else %}
+<div class="empty-state"><div class="empty-icon">🛒</div><h3>سلة الطلب فارغة</h3><p>أضف كتاباً متاحاً بسعر بيع من الكتالوج لبدء طلب تجريبي.</p><a class="btn btn-primary" href="{% url 'book' %}">استعراض الكتالوج</a></div>
+{% endif %}
+{% endblock %}

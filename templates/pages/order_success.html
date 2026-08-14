@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block title %}تم إنشاء الطلب · BookFlow LMS{% endblock %}
+{% block breadcrumb %}تم الطلب{% endblock %}
+
+{% block content %}
+<section class="order-success-card">
+    <div class="success-symbol">✓</div>
+    <p class="eyebrow">تمت المحاكاة بنجاح</p>
+    <h1>تم إنشاء طلبك التجريبي</h1>
+    <p>سجّلنا طلبك بحالة <strong>مدفوع تجريبياً</strong>. لا توجد أي عملية خصم أو اتصال بخدمة دفع حقيقية.</p>
+    <div class="order-reference">{{ order }}</div>
+    <div class="success-lines">
+        {% for item in order.items.all %}<div class="summary-row"><span>{{ item.book_title }}</span><strong>{{ item.unit_price }} ر.س</strong></div>{% endfor %}
+        <div class="summary-row total"><span>إجمالي الطلب</span><strong>{{ order.subtotal }} ر.س</strong></div>
+    </div>
+    <p class="demo-payment-note">وصلت بيانات الطلب إلى سجل BookFlow التجريبي فقط. يمكن استخدام مرجع الطلب أعلاه عند مراجعة لوحة الإدارة.</p>
+    <div class="success-actions"><a class="btn btn-primary" href="{% url 'book' %}">العودة إلى الكتالوج</a><a class="btn btn-light" href="{% url 'index' %}">لوحة التحكم</a></div>
+</section>
+{% endblock %}

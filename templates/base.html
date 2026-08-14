@@ -31,6 +31,9 @@
                 <a class="nav-link {% if request.resolver_match.url_name == 'book' %}is-active{% endif %}" href="{% url 'book' %}">
                     <span class="nav-icon">▤</span><span>كتالوج الكتب</span>
                 </a>
+                <a class="nav-link {% if request.resolver_match.url_name == 'cart' or request.resolver_match.url_name == 'checkout' %}is-active{% endif %}" href="{% url 'cart' %}">
+                    <span class="nav-icon">🛒</span><span>سلة الطلب</span>
+                </a>
                 <p class="nav-label nav-label-spaced">إدارة</p>
                 <a class="nav-link" href="{% url 'index' %}#add-book">
                     <span class="nav-icon">＋</span><span>إضافة كتاب</span>

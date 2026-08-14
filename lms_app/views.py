@@ -3,12 +3,16 @@
 from decimal import Decimal, InvalidOperation
 
 from django.contrib import messages
+from django.db import transaction
 from django.db.models import Avg, Count, DecimalField, Q, Sum
 from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404, redirect, render
 
-from .forms import BookForm, CategoryForm, ReviewForm
-from .models import Book, Category
+from .forms import BookForm, CategoryForm, CheckoutForm, ReviewForm
+from .models import Book, Category, Order, OrderItem
+
+
+CART_SESSION_KEY = "bookflow_cart_book_ids"
 
 
 def _dashboard_context(*, book_form=None, category_form=None):
@@ -61,6 +65,40 @@ def _dashboard_context(*, book_form=None, category_form=None):
         "sales_revenue": totals["sales_revenue"] or 0,
         "rental_revenue": totals["rental_revenue"] or 0,
     }
+
+
+def _cart_ids(request):
+    """Return the session cart as unique, valid integers in insertion order."""
+    raw_ids = request.session.get(CART_SESSION_KEY, [])
+    ids = []
+    for value in raw_ids:
+        try:
+            book_id = int(value)
+        except (TypeError, ValueError):
+            continue
+        if book_id not in ids:
+            ids.append(book_id)
+    if ids != raw_ids:
+        request.session[CART_SESSION_KEY] = ids
+    return ids
+
+
+def _save_cart(request, book_ids):
+    request.session[CART_SESSION_KEY] = list(dict.fromkeys(book_ids))
+    request.session.modified = True
+
+
+def _cart_summary(request):
+    """Build purchasable cart rows from the session and reconcile stale items."""
+    cart_ids = _cart_ids(request)
+    books = Book.objects.filter(id__in=cart_ids).select_related("category")
+    books_by_id = {book.id: book for book in books}
+    items = [books_by_id[book_id] for book_id in cart_ids if book_id in books_by_id and books_by_id[book_id].is_purchasable]
+    valid_ids = [book.id for book in items]
+    if valid_ids != cart_ids:
+        _save_cart(request, valid_ids)
+    total = sum((book.price for book in items), Decimal("0.00"))
+    return items, total
 
 
 def index(request):
@@ -203,6 +241,93 @@ def book_detail(request, id):
             "rating_breakdown": rating_breakdown,
         },
     )
+
+
+def add_to_cart(request, id):
+    if request.method != "POST":
+        return redirect("book-detail", id=id)
+    book_instance = get_object_or_404(Book, id=id)
+    next_url = request.POST.get("next", "")
+    if not book_instance.is_purchasable:
+        messages.error(request, "هذا الكتاب غير متاح للشراء حالياً.")
+        return redirect(next_url) if next_url else redirect("book-detail", id=id)
+    cart_ids = _cart_ids(request)
+    if book_instance.id not in cart_ids:
+        cart_ids.append(book_instance.id)
+        _save_cart(request, cart_ids)
+        messages.success(request, f"تمت إضافة «{book_instance.title}» إلى سلة الطلب.")
+    else:
+        messages.info(request, "هذا الكتاب موجود في سلة الطلب بالفعل.")
+    return redirect(next_url) if next_url else redirect("cart")
+
+
+def remove_from_cart(request, id):
+    if request.method == "POST":
+        cart_ids = [book_id for book_id in _cart_ids(request) if book_id != id]
+        _save_cart(request, cart_ids)
+        messages.success(request, "تمت إزالة الكتاب من سلة الطلب.")
+    return redirect("cart")
+
+
+def cart(request):
+    items, subtotal = _cart_summary(request)
+    return render(request, "pages/cart.html", {"items": items, "subtotal": subtotal})
+
+
+def checkout(request):
+    items, subtotal = _cart_summary(request)
+    if not items:
+        messages.info(request, "سلة الطلب فارغة. أضف كتاباً متاحاً أولاً.")
+        return redirect("book")
+
+    form = CheckoutForm()
+    if request.method == "POST":
+        form = CheckoutForm(request.POST)
+        if form.is_valid():
+            with transaction.atomic():
+                locked_books = list(
+                    Book.objects.select_for_update().filter(id__in=[item.id for item in items])
+                )
+                locked_by_id = {book.id: book for book in locked_books}
+                if len(locked_by_id) != len(items) or any(
+                    not locked_by_id[item.id].is_purchasable for item in items
+                ):
+                    messages.error(request, "تغيّرت حالة أحد الكتب. راجع السلة وحاول مرة أخرى.")
+                    _save_cart(request, [book.id for book in locked_books if book.is_purchasable])
+                    return redirect("cart")
+
+                locked_total = sum((locked_by_id[item.id].price for item in items), Decimal("0.00"))
+                order = form.save(commit=False)
+                order.subtotal = locked_total
+                order.payment_status = "simulated_paid"
+                order.save()
+                OrderItem.objects.bulk_create(
+                    [
+                        OrderItem(
+                            order=order,
+                            book=locked_by_id[item.id],
+                            book_title=locked_by_id[item.id].title,
+                            unit_price=locked_by_id[item.id].price,
+                        )
+                        for item in items
+                    ]
+                )
+                Book.objects.filter(id__in=[item.id for item in items]).update(statas=Book.STATUS_SOLD)
+                _save_cart(request, [])
+            messages.success(request, "اكتمل الدفع التجريبي بنجاح. لم يتم استخدام أي بوابة دفع حقيقية.")
+            return redirect("order-success", reference=order.reference)
+        messages.error(request, "راجِع بيانات الإتمام المحددة ثم أعد المحاولة.")
+
+    return render(
+        request,
+        "pages/checkout.html",
+        {"items": items, "subtotal": subtotal, "form": form},
+    )
+
+
+def order_success(request, reference):
+    order = get_object_or_404(Order.objects.prefetch_related("items"), reference=reference)
+    return render(request, "pages/order_success.html", {"order": order})
 
 
 def update(request, id):

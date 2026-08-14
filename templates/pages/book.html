@@ -49,7 +49,7 @@
                     <span><strong>{{ book.pages|default:"—" }}</strong>صفحة</span>
                     <span><strong>{% if book.price %}{{ book.price }}{% elif book.retal_price_day %}{{ book.retal_price_day }}{% else %}—{% endif %}</strong>{% if book.price %}ر.س{% elif book.retal_price_day %}ر.س / يوم{% else %}السعر{% endif %}</span>
                 </div>
-                <div class="book-actions"><a class="btn btn-light" href="{% url 'book-detail' book.id %}">التفاصيل</a><a class="btn btn-light" href="{% url 'update' book.id %}">تعديل</a><a class="btn btn-danger" href="{% url 'delete' book.id %}">حذف</a></div>
+                <div class="book-actions">{% if book.is_purchasable %}<form method="post" action="{% url 'add-to-cart' book.id %}">{% csrf_token %}<input type="hidden" name="next" value="{% url 'book' %}"><button class="btn btn-primary" type="submit">أضف للسلة</button></form>{% endif %}<a class="btn btn-light" href="{% url 'book-detail' book.id %}">التفاصيل</a><a class="btn btn-light" href="{% url 'update' book.id %}">تعديل</a><a class="btn btn-danger" href="{% url 'delete' book.id %}">حذف</a></div>
             </div>
         </article>
     {% endfor %}

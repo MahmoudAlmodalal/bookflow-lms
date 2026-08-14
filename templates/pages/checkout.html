@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}إتمام الطلب · BookFlow LMS{% endblock %}
+{% block breadcrumb %}إتمام الطلب{% endblock %}
+
+{% block content %}
+<div class="page-heading">
+    <div>
+        <p class="eyebrow">Checkout تجريبي</p>
+        <h1>إتمام الطلب</h1>
+        <p>أدخل بيانات التسليم ثم أكمل محاكاة الدفع. لا يتم الاتصال بأي بوابة دفع أو حفظ بيانات مالية.</p>
+    </div>
+    <a class="btn btn-light" href="{% url 'cart' %}">← العودة إلى السلة</a>
+</div>
+
+<form method="post" class="checkout-columns" novalidate>
+    {% csrf_token %}
+    <article class="checkout-form-card">
+        <h2>بيانات الطلب</h2><p>نستخدم هذه البيانات لمحاكاة إنشاء الطلب فقط.</p>
+        {% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors }}</div>{% endif %}
+        <div class="checkout-fields">
+            <div><label for="{{ form.customer_name.id_for_label }}">{{ form.customer_name.label }}</label>{{ form.customer_name }}{% if form.customer_name.errors %}<p class="field-errors">{{ form.customer_name.errors|join:", " }}</p>{% endif %}</div>
+            <div><label for="{{ form.customer_email.id_for_label }}">{{ form.customer_email.label }}</label>{{ form.customer_email }}{% if form.customer_email.errors %}<p class="field-errors">{{ form.customer_email.errors|join:", " }}</p>{% endif %}</div>
+            <div class="field-full"><label for="{{ form.customer_phone.id_for_label }}">{{ form.customer_phone.label }}</label>{{ form.customer_phone }}{% if form.customer_phone.errors %}<p class="field-errors">{{ form.customer_phone.errors|join:", " }}</p>{% endif %}</div>
+            <div class="field-full"><label for="{{ form.delivery_address.id_for_label }}">{{ form.delivery_address.label }}</label>{{ form.delivery_address }}{% if form.delivery_address.errors %}<p class="field-errors">{{ form.delivery_address.errors|join:", " }}</p>{% endif %}</div>
+            <div class="field-full"><label>{{ form.payment_method.label }}</label><div class="payment-options">{{ form.payment_method }}</div>{% if form.payment_method.errors %}<p class="field-errors">{{ form.payment_method.errors|join:", " }}</p>{% endif %}</div>
+        </div>
+        <button class="btn btn-primary checkout-submit" type="submit">🔒 إتمام الدفع التجريبي</button>
+        <div class="secure-mark"><span>✓</span> لا نطلب رقم بطاقة، رمز أمان، أو أي معلومات مالية حقيقية.</div>
+    </article>
+
+    <aside class="order-summary">
+        <h2>ملخص الطلب</h2><p>العناصر التي ستُسجَّل في الطلب التجريبي.</p>
+        <div class="checkout-items">
+            {% for book in items %}<div class="checkout-line"><span>{{ book.title }}</span><b>{{ book.price }} ر.س</b></div>{% endfor %}
+        </div>
+        <div class="summary-row total"><span>الإجمالي</span><strong>{{ subtotal }} ر.س</strong></div>
+        <p class="demo-payment-note"><strong>دفع محاكى:</strong> عند الإتمام يُنشأ طلب بسجل «مدفوع تجريبياً» وتتحول الكتب المختارة إلى حالة مباع.</p>
+    </aside>
+</form>
+{% endblock %}

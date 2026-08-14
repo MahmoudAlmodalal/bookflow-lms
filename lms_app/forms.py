@@ -4,7 +4,7 @@ from decimal import Decimal
 
 from django import forms
 
-from .models import Book, Category, Review
+from .models import Book, Category, Order, Review
 
 
 class CategoryForm(forms.ModelForm):
@@ -119,3 +119,42 @@ class ReviewForm(forms.ModelForm):
         if len(comment) < 12:
             raise forms.ValidationError("اكتب مراجعة لا تقل عن 12 حرفاً.")
         return comment
+
+
+class CheckoutForm(forms.ModelForm):
+    """Customer data for the BookFlow simulated-payment checkout."""
+
+    class Meta:
+        model = Order
+        fields = ["customer_name", "customer_email", "customer_phone", "delivery_address", "payment_method"]
+        labels = {
+            "customer_name": "الاسم الكامل",
+            "customer_email": "البريد الإلكتروني",
+            "customer_phone": "رقم الهاتف",
+            "delivery_address": "عنوان التسليم",
+            "payment_method": "طريقة الدفع التجريبية",
+        }
+        widgets = {
+            "customer_name": forms.TextInput(
+                attrs={"class": "form-control", "placeholder": "مثال: سارة أحمد", "autocomplete": "name"}
+            ),
+            "customer_email": forms.EmailInput(
+                attrs={"class": "form-control", "placeholder": "name@example.com", "autocomplete": "email"}
+            ),
+            "customer_phone": forms.TextInput(
+                attrs={"class": "form-control", "placeholder": "05XXXXXXXX", "autocomplete": "tel"}
+            ),
+            "delivery_address": forms.Textarea(
+                attrs={"class": "form-control checkout-textarea", "rows": 4, "placeholder": "المدينة، الحي، وبيانات التسليم"}
+            ),
+            "payment_method": forms.RadioSelect(attrs={"class": "payment-method"}),
+        }
+
+    def clean_customer_name(self):
+        return " ".join(self.cleaned_data["customer_name"].split())
+
+    def clean_delivery_address(self):
+        address = self.cleaned_data["delivery_address"].strip()
+        if len(address) < 10:
+            raise forms.ValidationError("أدخل عنوان تسليم أوضح لا يقل عن 10 أحرف.")
+        return address

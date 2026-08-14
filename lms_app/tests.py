@@ -3,7 +3,7 @@ from decimal import Decimal
 from django.test import TestCase
 from django.urls import reverse
 
-from .models import Book, Category, Review
+from .models import Book, Category, Order, OrderItem, Review
 
 
 class LibraryDashboardTests(TestCase):
@@ -91,6 +91,32 @@ class LibraryDashboardTests(TestCase):
         self.assertNotContains(response, "كتاب آخر")
         self.assertEqual(response.context["selected_year"], "2022")
         self.assertEqual(response.context["books"].count(), 1)
+
+    def test_cart_add_and_checkout_create_a_simulated_paid_order(self):
+        add_response = self.client.post(reverse("add-to-cart", args=[self.book.pk]))
+
+        self.assertRedirects(add_response, reverse("cart"))
+        self.assertContains(self.client.get(reverse("cart")), "كتاب تجريبي")
+
+        checkout_response = self.client.post(
+            reverse("checkout"),
+            {
+                "customer_name": "سارة أحمد",
+                "customer_email": "sara@example.com",
+                "customer_phone": "0500000000",
+                "delivery_address": "الرياض، حي الندى، شارع الاختبار 12",
+                "payment_method": Order.PAYMENT_CARD,
+            },
+        )
+
+        order = Order.objects.get(customer_email="sara@example.com")
+        self.assertRedirects(checkout_response, reverse("order-success", args=[order.reference]))
+        self.assertEqual(order.payment_status, "simulated_paid")
+        self.assertEqual(order.subtotal, Decimal("45.00"))
+        self.assertEqual(OrderItem.objects.filter(order=order).count(), 1)
+        self.book.refresh_from_db()
+        self.assertEqual(self.book.statas, Book.STATUS_SOLD)
+        self.assertEqual(self.client.session.get("bookflow_cart_book_ids"), [])
 
     def test_book_detail_calculates_reader_ratings(self):
         Review.objects.create(book=self.book, reviewer_name="سارة", rating=5, comment="كتاب واضح ومفيد جداً للقارئ الجديد.")

@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Book, Category, Review
+from .models import Book, Category, Order, OrderItem, Review
 
 
 @admin.register(Category)
@@ -24,3 +24,19 @@ class ReviewAdmin(admin.ModelAdmin):
     search_fields = ("book__title", "reviewer_name", "comment")
     list_select_related = ("book",)
     readonly_fields = ("created_at",)
+
+
+class OrderItemInline(admin.TabularInline):
+    model = OrderItem
+    extra = 0
+    readonly_fields = ("book", "book_title", "unit_price", "quantity")
+    can_delete = False
+
+
+@admin.register(Order)
+class OrderAdmin(admin.ModelAdmin):
+    list_display = ("__str__", "customer_name", "customer_email", "subtotal", "payment_method", "payment_status", "created_at")
+    list_filter = ("payment_method", "payment_status", "created_at")
+    search_fields = ("customer_name", "customer_email", "customer_phone", "reference")
+    readonly_fields = ("reference", "subtotal", "payment_status", "created_at")
+    inlines = (OrderItemInline,)

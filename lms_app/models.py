@@ -1,5 +1,7 @@
 """Domain models for the BookFlow library inventory."""
 
+import uuid
+
 from django.db import models
 
 
@@ -96,6 +98,11 @@ class Book(models.Model):
             return self.total_rental_price
         return None
 
+    @property
+    def is_purchasable(self) -> bool:
+        """A book can enter the demo cart only when it is currently in stock."""
+        return bool(self.active and self.statas == self.STATUS_AVAILABLE and self.price is not None)
+
 
 class Review(models.Model):
     """A reader review and rating submitted from a book detail page."""
@@ -134,3 +141,57 @@ class Review(models.Model):
     @property
     def empty_stars(self) -> str:
         return "☆" * (5 - self.rating)
+
+
+class Order(models.Model):
+    """A completed BookFlow demo order with no real payment data."""
+
+    PAYMENT_CARD = "mock_card"
+    PAYMENT_WALLET = "mock_wallet"
+    PAYMENT_CHOICES = (
+        (PAYMENT_CARD, "بطاقة تجريبية"),
+        (PAYMENT_WALLET, "محفظة تجريبية"),
+    )
+
+    reference = models.UUIDField("مرجع الطلب", default=uuid.uuid4, editable=False, unique=True)
+    customer_name = models.CharField("اسم العميل", max_length=100)
+    customer_email = models.EmailField("البريد الإلكتروني")
+    customer_phone = models.CharField("رقم الهاتف", max_length=30)
+    delivery_address = models.TextField("عنوان التسليم", max_length=500)
+    payment_method = models.CharField("طريقة الدفع", max_length=20, choices=PAYMENT_CHOICES)
+    payment_status = models.CharField("حالة الدفع", max_length=20, default="simulated_paid")
+    subtotal = models.DecimalField("إجمالي الطلب", max_digits=10, decimal_places=2)
+    created_at = models.DateTimeField("تاريخ الطلب", auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+        verbose_name = "طلب"
+        verbose_name_plural = "الطلبات"
+
+    def __str__(self) -> str:
+        return f"BF-{str(self.reference).split('-')[0].upper()}"
+
+    @property
+    def item_count(self) -> int:
+        return self.items.count()
+
+
+class OrderItem(models.Model):
+    """A frozen book and price record belonging to an order."""
+
+    order = models.ForeignKey(Order, verbose_name="الطلب", on_delete=models.CASCADE, related_name="items")
+    book = models.ForeignKey(Book, verbose_name="الكتاب", on_delete=models.PROTECT, related_name="order_items")
+    book_title = models.CharField("عنوان الكتاب", max_length=120)
+    unit_price = models.DecimalField("سعر الوحدة", max_digits=8, decimal_places=2)
+    quantity = models.PositiveIntegerField("الكمية", default=1)
+
+    class Meta:
+        verbose_name = "عنصر طلب"
+        verbose_name_plural = "عناصر الطلب"
+
+    def __str__(self) -> str:
+        return f"{self.book_title} × {self.quantity}"
+
+    @property
+    def line_total(self):
+        return self.unit_price * self.quantity

@@ -23,7 +23,7 @@
     .nav { flex:1; }
     .nav-label { margin:0 12px 10px; color:#7182a7; font-size:10px; font-weight:700; letter-spacing:1px; }
     .nav a { display:flex; align-items:center; gap:12px; margin:4px 0; padding:11px 13px; border-radius:12px; color:#aab7d2; font-size:13px; font-weight:600; transition:.2s; }
-    .nav a:hover, .nav a.active { background:rgba(113,132,255,.18); color:#fff; }
+    .nav a:hover, .nav a.active { background:rgba(113,132,255,.18); color:#fff; }.cart-badge{display:grid;min-width:20px;height:20px;margin-right:auto;place-items:center;border-radius:99px;background:#7184ff;color:#fff;font-size:9px;font-weight:800}.cart-trigger{border:0;font-family:inherit;cursor:pointer;background:transparent}
     .side-note { margin:16px 5px; padding:16px; border:1px solid rgba(255,255,255,.08); border-radius:15px; background:rgba(255,255,255,.045); color:#aab7d2; font-size:11px; }
     .side-note b { color:#9facff; font-size:9px; letter-spacing:1px; }
     .side-note p { margin:8px 0 0; }
@@ -61,7 +61,7 @@
 </head>
 <body>
 <div class="shell">
-  <aside class="sidebar"><div class="brand"><div class="mark">BF</div><div><strong>BookFlow</strong><small>Library management</small></div></div><nav class="nav"><p class="nav-label">مساحة العمل</p><a class="active" href="#top">⌂ <span>نظرة عامة</span></a><a href="#catalog">▤ <span>كتالوج الكتب</span></a><p class="nav-label" style="margin-top:28px">عرض تفاعلي</p><a href="https://github.com/MahmoudAlmodalal/bookflow-lms" target="_blank" rel="noreferrer">↗ <span>المصدر على GitHub</span></a></nav><div class="side-note"><b>BOOKFLOW LMS</b><p>نظّم مكتبتك، وتابع مخزونك، واتخذ قرارك بسرعة.</p></div><div class="side-foot">نسخة العرض العام · 2026</div></aside>
+  <aside class="sidebar"><div class="brand"><div class="mark">BF</div><div><strong>BookFlow</strong><small>Library management</small></div></div><nav class="nav"><p class="nav-label">مساحة العمل</p><a class="active" href="#top">⌂ <span>نظرة عامة</span></a><a href="#catalog">▤ <span>كتالوج الكتب</span></a><a href="cart.html">🛒 <span>سلة الطلب</span><b class="cart-badge" id="cartCount">0</b></a><p class="nav-label" style="margin-top:28px">عرض تفاعلي</p><a href="https://github.com/MahmoudAlmodalal/bookflow-lms" target="_blank" rel="noreferrer">↗ <span>المصدر على GitHub</span></a></nav><div class="side-note"><b>BOOKFLOW LMS</b><p>نظّم مكتبتك، وتابع مخزونك، واتخذ قرارك بسرعة.</p></div><div class="side-foot">نسخة العرض العام · 2026</div></aside>
   <div class="main">
     <header class="topbar"><div class="crumb">مساحة العمل <b>/ نظرة عامة</b></div><div class="live"><i></i> العرض يعمل</div></header>
     <main class="page" id="top">
@@ -127,10 +127,16 @@
     const minRating = Number(document.querySelector('#minRating').value || 0);
     const selectedYear = Number(document.querySelector('#year').value || 0);
     const filtered = books.filter(book => (!query || `${book.title} ${book.author}`.toLowerCase().includes(query)) && (!selectedStatus || book.status === selectedStatus) && (!selectedCategory || book.category === selectedCategory) && (!minPrice || book.priceValue >= minPrice) && (!maxPrice || book.priceValue <= maxPrice) && (!minRating || book.rating >= minRating) && (!selectedYear || book.year === selectedYear));
-    booksEl.innerHTML = filtered.map(book => `<article class="book"><div class="cover cover-${books.indexOf(book) % 6}"><h3>${book.title}</h3></div><div class="body"><div class="meta"><span class="category">${book.category}</span><span class="chip ${book.status}">${book.label}</span></div><h3>${book.title}</h3><p class="author">${book.author}</p><div class="details"><span><b>${book.pages}</b>صفحة</span><span><b>${book.price}</b>السعر</span></div><div class="book-actions"><a class="detail-link" href="book-detail.html?id=${books.indexOf(book)}">عرض التفاصيل <span>←</span></a></div></div></article>`).join('');
+    booksEl.innerHTML = filtered.map(book => `<article class="book"><div class="cover cover-${books.indexOf(book) % 6}"><h3>${book.title}</h3></div><div class="body"><div class="meta"><span class="category">${book.category}</span><span class="chip ${book.status}">${book.label}</span></div><h3>${book.title}</h3><p class="author">${book.author}</p><div class="details"><span><b>${book.pages}</b>صفحة</span><span><b>${book.price}</b>السعر</span></div><div class="book-actions">${book.status === 'available' ? `<button class="detail-link cart-trigger" type="button" data-book-id="${books.indexOf(book)}">أضف للسلة <span>🛒</span></button>` : ''}<a class="detail-link" href="book-detail.html?id=${books.indexOf(book)}">عرض التفاصيل <span>←</span></a></div></div></article>`).join('');
     emptyEl.hidden = filtered.length > 0;
     resultEl.textContent = `${filtered.length} كتب معروضة في العرض التجريبي.`;
+    document.querySelectorAll('.cart-trigger').forEach(button => button.addEventListener('click', () => addToCart(Number(button.dataset.bookId))));
   }
+  const CART_KEY = 'bookflow-demo-cart';
+  function getCart(){try{return JSON.parse(localStorage.getItem(CART_KEY)||'[]')}catch{return[]}}
+  function saveCart(cart){localStorage.setItem(CART_KEY,JSON.stringify([...new Set(cart)]));renderCartCount()}
+  function renderCartCount(){document.querySelector('#cartCount').textContent=getCart().length}
+  function addToCart(bookId){const cart=getCart();if(!cart.includes(bookId)){cart.push(bookId);saveCart(cart)}location.href='cart.html'}
   document.querySelector('#filter').addEventListener('click', renderBooks);
   document.querySelector('#query').addEventListener('input', renderBooks);
   document.querySelector('#status').addEventListener('change', renderBooks);
@@ -141,6 +147,7 @@
   document.querySelector('#year').addEventListener('change', renderBooks);
   renderAnalytics();
   renderBooks();
+  renderCartCount();
 </script>
 </body>
 </html>
