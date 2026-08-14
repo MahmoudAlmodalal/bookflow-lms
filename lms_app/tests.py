@@ -14,6 +14,7 @@ class LibraryDashboardTests(TestCase):
             author="مؤلف تجريبي",
             price=Decimal("45.00"),
             pages=220,
+            publication_year=2022,
             statas=Book.STATUS_AVAILABLE,
             category=self.category,
         )
@@ -67,6 +68,29 @@ class LibraryDashboardTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "كتاب مباع")
         self.assertNotContains(response, "كتاب تجريبي")
+
+    def test_catalog_advanced_filters_price_rating_and_year(self):
+        Book.objects.create(
+            title="كتاب آخر",
+            price=Decimal("85.00"),
+            publication_year=2018,
+            statas=Book.STATUS_AVAILABLE,
+            category=self.category,
+        )
+        Review.objects.create(book=self.book, reviewer_name="ريم", rating=5, comment="عنوان واضح وعملي ويستحق التوصية للقارئ الجديد.")
+        other_book = Book.objects.get(title="كتاب آخر")
+        Review.objects.create(book=other_book, reviewer_name="عمر", rating=3, comment="محتوى جيد لكنه يحتاج إلى أمثلة أكثر تفصيلاً.")
+
+        response = self.client.get(
+            reverse("book"),
+            {"price_min": "40", "price_max": "50", "rating_min": "4", "year": "2022"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "كتاب تجريبي")
+        self.assertNotContains(response, "كتاب آخر")
+        self.assertEqual(response.context["selected_year"], "2022")
+        self.assertEqual(response.context["books"].count(), 1)
 
     def test_book_detail_calculates_reader_ratings(self):
         Review.objects.create(book=self.book, reviewer_name="سارة", rating=5, comment="كتاب واضح ومفيد جداً للقارئ الجديد.")

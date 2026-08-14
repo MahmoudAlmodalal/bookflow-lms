@@ -48,6 +48,9 @@ class Book(models.Model):
     )
     active = models.BooleanField("نشط", default=True, blank=True, null=True)
     pages = models.PositiveIntegerField("عدد الصفحات", blank=True, null=True)
+    publication_year = models.PositiveIntegerField(
+        "سنة الصدور", blank=True, null=True, db_index=True
+    )
     statas = models.CharField(
         "الحالة", max_length=50, choices=STATUS_CHOICES, blank=True, null=True, db_index=True
     )

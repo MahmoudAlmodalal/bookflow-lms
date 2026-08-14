@@ -8,25 +8,26 @@
     <div>
         <p class="eyebrow">المخزون</p>
         <h1>كتالوج الكتب</h1>
-        <p>ابحث في مجموعتك، وفلتر النتائج حسب الحالة أو التصنيف، ثم حدّث بيانات أي كتاب.</p>
+        <p>ابحث في مجموعتك وفلتر النتائج حسب الحالة والتصنيف والسعر والتقييم وسنة الصدور.</p>
     </div>
     <a class="btn btn-primary" href="{% url 'index' %}#add-book">＋ إضافة كتاب</a>
 </div>
 
-<form class="search-toolbar" method="get" action="{% url 'book' %}">
-    <div class="search-input"><label class="sr-only" for="search-query">ابحث في الكتب</label><input class="form-control" id="search-query" name="q" value="{{ query }}" placeholder="ابحث بالعنوان أو اسم المؤلف"></div>
-    <select class="form-control" name="status" aria-label="تصفية حسب الحالة">
-        <option value="">كل الحالات</option>
-        {% for value, label in status_choices %}<option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
-    </select>
-    <select class="form-control" name="category" aria-label="تصفية حسب التصنيف">
-        <option value="">كل التصنيفات</option>
-        {% for category in categories %}<option value="{{ category.id }}" {% if selected_category == category.id|stringformat:"s" %}selected{% endif %}>{{ category.name }}</option>{% endfor %}
-    </select>
-    <button class="btn btn-primary" type="submit">تطبيق الفلاتر</button>
+<form class="advanced-search-toolbar" method="get" action="{% url 'book' %}">
+    <div class="advanced-search-title"><div><p class="eyebrow">بحث ذكي</p><h2>فلترة متقدمة</h2></div><p>حدّد أكثر من معيار للوصول إلى العنوان المناسب بسرعة.</p></div>
+    <div class="advanced-search-grid">
+        <div class="search-input advanced-query"><label class="sr-only" for="search-query">ابحث في الكتب</label><input class="form-control" id="search-query" name="q" value="{{ query }}" placeholder="ابحث بالعنوان أو اسم المؤلف"></div>
+        <div class="filter-field"><label for="filter-status">الحالة</label><select class="form-control" id="filter-status" name="status"><option value="">كل الحالات</option>{% for value, label in status_choices %}<option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+        <div class="filter-field"><label for="filter-category">التصنيف</label><select class="form-control" id="filter-category" name="category"><option value="">كل التصنيفات</option>{% for category in categories %}<option value="{{ category.id }}" {% if selected_category == category.id|stringformat:"s" %}selected{% endif %}>{{ category.name }}</option>{% endfor %}</select></div>
+        <div class="filter-field"><label for="filter-price-min">السعر من</label><input class="form-control" id="filter-price-min" name="price_min" type="number" min="0" step="0.01" value="{{ selected_price_min }}" placeholder="0 ر.س"></div>
+        <div class="filter-field"><label for="filter-price-max">السعر إلى</label><input class="form-control" id="filter-price-max" name="price_max" type="number" min="0" step="0.01" value="{{ selected_price_max }}" placeholder="200 ر.س"></div>
+        <div class="filter-field"><label for="filter-rating">التقييم الأدنى</label><select class="form-control" id="filter-rating" name="rating_min"><option value="">كل التقييمات</option><option value="5" {% if selected_rating_min == "5" %}selected{% endif %}>5 نجوم</option><option value="4" {% if selected_rating_min == "4" %}selected{% endif %}>4 نجوم فأكثر</option><option value="3" {% if selected_rating_min == "3" %}selected{% endif %}>3 نجوم فأكثر</option><option value="2" {% if selected_rating_min == "2" %}selected{% endif %}>نجمتان فأكثر</option><option value="1" {% if selected_rating_min == "1" %}selected{% endif %}>نجمة فأكثر</option></select></div>
+        <div class="filter-field"><label for="filter-year">سنة الصدور</label><input class="form-control" id="filter-year" name="year" type="number" min="1000" max="2100" value="{{ selected_year }}" placeholder="مثال: 2024"></div>
+    </div>
+    <div class="advanced-search-actions"><button class="btn btn-primary" type="submit">تطبيق البحث المتقدم</button>{% if query or selected_status or selected_category or selected_price_min or selected_price_max or selected_rating_min or selected_year %}<a class="btn btn-light" href="{% url 'book' %}">مسح الفلاتر ×</a>{% endif %}</div>
 </form>
 
-<div class="section-heading"><div><h2>النتائج</h2><p>تم العثور على {{ books|length }} كتاب ضمن الفلاتر الحالية.</p></div>{% if query or selected_status or selected_category %}<a class="heading-link" href="{% url 'book' %}">مسح الفلاتر ×</a>{% endif %}</div>
+<div class="section-heading"><div><h2>النتائج</h2><p>تم العثور على {{ books|length }} كتاب ضمن معايير البحث الحالية.</p></div></div>
 
 {% if books %}
 <section class="book-grid" aria-label="نتائج البحث">

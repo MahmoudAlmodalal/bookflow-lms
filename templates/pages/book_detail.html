@@ -27,6 +27,7 @@
 
         <div class="detail-facts" aria-label="بيانات الكتاب">
             <div><span>عدد الصفحات</span><strong>{{ book.pages|default:"—" }}</strong></div>
+            <div><span>سنة الصدور</span><strong>{{ book.publication_year|default:"—" }}</strong></div>
             <div><span>سعر البيع</span><strong>{% if book.price %}{{ book.price }} ر.س{% else %}—{% endif %}</strong></div>
             <div><span>الإعارة اليومية</span><strong>{% if book.retal_price_day %}{{ book.retal_price_day }} ر.س{% else %}—{% endif %}</strong></div>
             <div><span>مدة الإعارة</span><strong>{% if book.rental_period %}{{ book.rental_period }} أيام{% else %}—{% endif %}</strong></div>

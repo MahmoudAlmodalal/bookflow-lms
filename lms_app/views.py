@@ -1,7 +1,10 @@
 """Views for the BookFlow inventory dashboard."""
 
+from decimal import Decimal, InvalidOperation
+
 from django.contrib import messages
-from django.db.models import Avg, Count, Q, Sum
+from django.db.models import Avg, Count, DecimalField, Q, Sum
+from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404, redirect, render
 
 from .forms import BookForm, CategoryForm, ReviewForm
@@ -86,13 +89,38 @@ def index(request):
     return render(request, "pages/index.html", context)
 
 
+def _decimal_query_value(value: str):
+    """Return a non-negative decimal query value or None for absent/invalid input."""
+    if not value:
+        return None
+    try:
+        parsed = Decimal(value)
+    except (InvalidOperation, TypeError):
+        return None
+    return parsed if parsed >= 0 else None
+
+
 def book(request):
     """Render a searchable, filterable catalogue of books."""
     query = request.GET.get("q", "").strip()
     status = request.GET.get("status", "").strip()
     category_id = request.GET.get("category", "").strip()
+    price_min_raw = request.GET.get("price_min", "").strip()
+    price_max_raw = request.GET.get("price_max", "").strip()
+    rating_min_raw = request.GET.get("rating_min", "").strip()
+    publication_year_raw = request.GET.get("year", "").strip()
+    price_min = _decimal_query_value(price_min_raw)
+    price_max = _decimal_query_value(price_max_raw)
+    rating_min = Decimal(rating_min_raw) if rating_min_raw in {"1", "2", "3", "4", "5"} else None
+    publication_year = int(publication_year_raw) if publication_year_raw.isdigit() and 1000 <= int(publication_year_raw) <= 2100 else None
     books = Book.objects.select_related("category").annotate(
-        average_rating=Avg("reviews__rating"), review_count=Count("reviews")
+        display_price=Coalesce(
+            "price",
+            "retal_price_day",
+            output_field=DecimalField(max_digits=8, decimal_places=2),
+        ),
+        average_rating=Avg("reviews__rating"),
+        review_count=Count("reviews"),
     )
 
     if query:
@@ -101,6 +129,14 @@ def book(request):
         books = books.filter(statas=status)
     if category_id.isdigit():
         books = books.filter(category_id=category_id)
+    if price_min is not None:
+        books = books.filter(display_price__gte=price_min)
+    if price_max is not None:
+        books = books.filter(display_price__lte=price_max)
+    if rating_min is not None:
+        books = books.filter(average_rating__gte=rating_min)
+    if publication_year is not None:
+        books = books.filter(publication_year=publication_year)
 
     context = {
         "books": books,
@@ -108,6 +144,14 @@ def book(request):
         "query": query,
         "selected_status": status,
         "selected_category": category_id,
+        "selected_price_min": price_min_raw,
+        "selected_price_max": price_max_raw,
+        "selected_rating_min": rating_min_raw,
+        "selected_year": publication_year_raw,
+        "publication_years": Book.objects.exclude(publication_year__isnull=True)
+        .values_list("publication_year", flat=True)
+        .distinct()
+        .order_by("-publication_year"),
         "status_choices": Book.STATUS_CHOICES,
         "category_form": CategoryForm(),
     }

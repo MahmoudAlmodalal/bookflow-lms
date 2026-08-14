@@ -35,6 +35,7 @@ class BookForm(forms.ModelForm):
             "rental_peroid",
             "total_rental_price",
             "pages",
+            "publication_year",
             "statas",
             "category",
         ]
@@ -48,6 +49,7 @@ class BookForm(forms.ModelForm):
             "rental_peroid": "مدة الإعارة بالأيام",
             "total_rental_price": "إجمالي قيمة الإعارة",
             "pages": "عدد الصفحات",
+            "publication_year": "سنة الصدور",
             "statas": "الحالة",
             "category": "التصنيف",
         }
@@ -67,6 +69,9 @@ class BookForm(forms.ModelForm):
                 attrs={"class": "form-control", "id": "total-rental", "step": "0.01", "min": "0"}
             ),
             "pages": forms.NumberInput(attrs={"class": "form-control", "min": "1"}),
+            "publication_year": forms.NumberInput(
+                attrs={"class": "form-control", "min": "1000", "max": "2100", "placeholder": "مثال: 2024"}
+            ),
             "statas": forms.Select(attrs={"class": "form-control"}),
             "category": forms.Select(attrs={"class": "form-control"}),
         }

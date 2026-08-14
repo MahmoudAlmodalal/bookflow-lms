@@ -520,3 +520,36 @@ textarea.form-control { min-height: 100px; }
 .catalog-rating span { color: #d98b1d; font-size: 11px; font-weight: 800; }
 .catalog-rating small { color: var(--muted-light); font-size: 9px; }
 .catalog-rating .muted-rating { color: var(--muted-light); }
+
+/* Advanced catalogue search */
+.advanced-search-toolbar { margin-bottom: 25px; padding: 18px; border: 1px solid var(--line); border-radius: var(--radius-lg); background: white; box-shadow: var(--shadow); }
+.advanced-search-title { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+.advanced-search-title .eyebrow { margin-bottom: 2px; }
+.advanced-search-title h2 { margin: 0; color: var(--ink); font-size: 18px; font-weight: 800; }
+.advanced-search-title > p { max-width: 360px; margin: 0; color: var(--muted); font-size: 10px; text-align: left; }
+.advanced-search-grid { display: grid; grid-template-columns: minmax(220px, 1.35fr) repeat(6, minmax(115px, .7fr)); gap: 10px; }
+.filter-field label { display: block; margin: 0 0 5px; color: var(--muted); font-size: 9px; font-weight: 700; }
+.advanced-query { align-self: end; }
+.advanced-search-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+.advanced-search-actions .btn { min-height: 38px; }
+@media (max-width: 1280px) {
+    .advanced-search-grid { grid-template-columns: minmax(220px, 1.4fr) repeat(3, minmax(135px, 1fr)); }
+}
+@media (max-width: 760px) {
+    .advanced-search-title { display: block; }
+    .advanced-search-title > p { max-width: none; margin-top: 5px; text-align: right; }
+    .advanced-search-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .advanced-query { grid-column: 1 / -1; }
+}
+@media (max-width: 460px) {
+    .advanced-search-toolbar { padding: 15px; }
+    .advanced-search-grid { grid-template-columns: 1fr; }
+    .advanced-query { grid-column: auto; }
+    .advanced-search-actions { justify-content: stretch; }
+    .advanced-search-actions .btn { flex: 1; }
+}
+
+@media (min-width: 761px) and (max-width: 1180px) {
+    .advanced-search-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .advanced-query { grid-column: 1 / -1; }
+}
