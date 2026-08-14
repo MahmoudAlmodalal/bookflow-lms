@@ -1,9 +1,13 @@
 from decimal import Decimal
 
+from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
-from .models import Book, Category, Order, OrderItem, Review
+from .models import Book, CartItem, Category, Order, OrderItem, Review
+
+
+User = get_user_model()
 
 
 class LibraryDashboardTests(TestCase):
@@ -18,6 +22,7 @@ class LibraryDashboardTests(TestCase):
             statas=Book.STATUS_AVAILABLE,
             category=self.category,
         )
+        self.password = "BookFlow!2026Secure"
 
     def test_dashboard_renders_inventory_metrics(self):
         response = self.client.get(reverse("index"))
@@ -93,10 +98,13 @@ class LibraryDashboardTests(TestCase):
         self.assertEqual(response.context["books"].count(), 1)
 
     def test_cart_add_and_checkout_create_a_simulated_paid_order(self):
+        user = User.objects.create_user(username="sara", email="sara@example.com", password=self.password)
+        self.client.force_login(user)
         add_response = self.client.post(reverse("add-to-cart", args=[self.book.pk]))
 
         self.assertRedirects(add_response, reverse("cart"))
         self.assertContains(self.client.get(reverse("cart")), "كتاب تجريبي")
+        self.assertTrue(CartItem.objects.filter(user=user, book=self.book).exists())
 
         checkout_response = self.client.post(
             reverse("checkout"),
@@ -111,12 +119,79 @@ class LibraryDashboardTests(TestCase):
 
         order = Order.objects.get(customer_email="sara@example.com")
         self.assertRedirects(checkout_response, reverse("order-success", args=[order.reference]))
+        self.assertEqual(order.user, user)
         self.assertEqual(order.payment_status, "simulated_paid")
         self.assertEqual(order.subtotal, Decimal("45.00"))
         self.assertEqual(OrderItem.objects.filter(order=order).count(), 1)
+        self.assertFalse(CartItem.objects.filter(user=user).exists())
         self.book.refresh_from_db()
         self.assertEqual(self.book.statas, Book.STATUS_SOLD)
+
+    def test_register_creates_account_and_moves_guest_cart_to_user(self):
+        session = self.client.session
+        session["bookflow_cart_book_ids"] = [self.book.pk]
+        session.save()
+
+        response = self.client.post(
+            reverse("register"),
+            {
+                "username": "reem_reader",
+                "email": "reem@example.com",
+                "password1": self.password,
+                "password2": self.password,
+            },
+        )
+
+        user = User.objects.get(username="reem_reader")
+        self.assertRedirects(response, reverse("cart"))
+        self.assertTrue(user.check_password(self.password))
+        self.assertEqual(user.email, "reem@example.com")
+        self.assertTrue(CartItem.objects.filter(user=user, book=self.book).exists())
         self.assertEqual(self.client.session.get("bookflow_cart_book_ids"), [])
+        self.assertEqual(int(self.client.session["_auth_user_id"]), user.pk)
+
+    def test_login_by_email_merges_guest_cart_with_existing_account_cart(self):
+        user = User.objects.create_user(username="omar", email="omar@example.com", password=self.password)
+        CartItem.objects.create(user=user, book=self.book)
+        second_book = Book.objects.create(
+            title="كتاب للسلة",
+            price=Decimal("35.00"),
+            statas=Book.STATUS_AVAILABLE,
+            category=self.category,
+        )
+        session = self.client.session
+        session["bookflow_cart_book_ids"] = [second_book.pk, self.book.pk]
+        session.save()
+
+        response = self.client.post(
+            reverse("login"),
+            {"identifier": "omar@example.com", "password": self.password},
+        )
+
+        self.assertRedirects(response, reverse("cart"))
+        self.assertSetEqual(
+            set(CartItem.objects.filter(user=user).values_list("book_id", flat=True)),
+            {self.book.pk, second_book.pk},
+        )
+        self.assertEqual(self.client.session.get("bookflow_cart_book_ids"), [])
+
+    def test_checkout_requires_login_and_order_success_is_private(self):
+        response = self.client.get(reverse("checkout"))
+        self.assertRedirects(response, f"{reverse('login')}?next={reverse('checkout')}")
+
+        owner = User.objects.create_user(username="owner", password=self.password)
+        order = Order.objects.create(
+            user=owner,
+            customer_name="صاحب الطلب",
+            customer_email="owner@example.com",
+            customer_phone="0500000000",
+            delivery_address="الرياض، حي الندى، شارع الاختبار 12",
+            payment_method=Order.PAYMENT_CARD,
+            subtotal=Decimal("45.00"),
+        )
+        other_user = User.objects.create_user(username="other", password=self.password)
+        self.client.force_login(other_user)
+        self.assertEqual(self.client.get(reverse("order-success", args=[order.reference])).status_code, 404)
 
     def test_book_detail_calculates_reader_ratings(self):
         Review.objects.create(book=self.book, reviewer_name="سارة", rating=5, comment="كتاب واضح ومفيد جداً للقارئ الجديد.")

@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block title %}طلباتي · BookFlow LMS{% endblock %}
+{% block breadcrumb %}طلباتي{% endblock %}
+
+{% block content %}
+<div class="page-heading">
+    <div>
+        <p class="eyebrow">حسابي</p>
+        <h1>طلباتي التجريبية</h1>
+        <p>هذه قائمة الطلبات التي أُنشئت من حساب <strong>{{ request.user.username }}</strong>. لا تمثل أي عمليات دفع حقيقية.</p>
+    </div>
+    <a class="btn btn-light" href="{% url 'book' %}">← العودة إلى الكتالوج</a>
+</div>
+
+{% if orders %}
+    <section class="orders-list" aria-label="سجل الطلبات">
+        {% for order in orders %}
+            <article class="order-card">
+                <div class="order-card-head">
+                    <div><p class="order-kicker">طلب تجريبي</p><h2>{{ order }}</h2><p>{{ order.created_at|date:"Y/m/d — H:i" }}</p></div>
+                    <span class="status-chip status-available">مدفوع تجريبياً</span>
+                </div>
+                <div class="order-card-items">
+                    {% for item in order.items.all %}<span>{{ item.book_title }} <strong>×{{ item.quantity }}</strong></span>{% endfor %}
+                </div>
+                <div class="order-card-foot"><span>{{ order.item_count }} عنوان</span><strong>{{ order.subtotal }} ر.س</strong></div>
+            </article>
+        {% endfor %}
+    </section>
+{% else %}
+    <div class="empty-state"><div class="empty-icon">▤</div><h3>لا توجد طلبات بعد</h3><p>بعد إتمام طلب تجريبي من حسابك، سيظهر هنا مع جميع عناوينه وإجماليه.</p><a class="btn btn-primary" href="{% url 'book' %}">استعراض الكتالوج</a></div>
+{% endif %}
+{% endblock %}

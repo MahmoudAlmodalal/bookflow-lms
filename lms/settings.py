@@ -121,6 +121,10 @@ MEDIA_ROOT = BASE_DIR / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+LOGIN_URL = "login"
+LOGIN_REDIRECT_URL = "cart"
+LOGOUT_REDIRECT_URL = "index"
+
 # Safe defaults for local development; production deployments should set them
 # explicitly in the platform environment variables.
 if not DEBUG:

@@ -3,8 +3,140 @@
 from decimal import Decimal
 
 from django import forms
+from django.contrib.auth import authenticate, get_user_model
+from django.contrib.auth.forms import UserCreationForm
+from django.db.models import Q
 
 from .models import Book, Category, Order, Review
+
+
+User = get_user_model()
+
+
+class RegisterForm(UserCreationForm):
+    """Create a BookFlow account with Django's built-in password protection."""
+
+    username = forms.CharField(
+        label="اسم المستخدم",
+        max_length=150,
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "مثال: reem_reader",
+                "autocomplete": "username",
+            }
+        ),
+    )
+    email = forms.EmailField(
+        label="البريد الإلكتروني",
+        widget=forms.EmailInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "name@example.com",
+                "autocomplete": "email",
+            }
+        ),
+    )
+    password1 = forms.CharField(
+        label="كلمة المرور",
+        strip=False,
+        widget=forms.PasswordInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "أنشئ كلمة مرور قوية",
+                "autocomplete": "new-password",
+            }
+        ),
+    )
+    password2 = forms.CharField(
+        label="تأكيد كلمة المرور",
+        strip=False,
+        widget=forms.PasswordInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "أعد كتابة كلمة المرور",
+                "autocomplete": "new-password",
+            }
+        ),
+    )
+
+    class Meta(UserCreationForm.Meta):
+        model = User
+        fields = ("username", "email", "password1", "password2")
+
+    def clean_email(self):
+        email = self.cleaned_data["email"].strip().lower()
+        if User.objects.filter(email__iexact=email).exists():
+            raise forms.ValidationError("يوجد حساب مسجل بهذا البريد الإلكتروني بالفعل.")
+        return email
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.email = self.cleaned_data["email"]
+        if commit:
+            user.save()
+        return user
+
+
+class LoginForm(forms.Form):
+    """Authenticate with either the username or the unique account email."""
+
+    identifier = forms.CharField(
+        label="اسم المستخدم أو البريد الإلكتروني",
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "اسم المستخدم أو name@example.com",
+                "autocomplete": "username",
+            }
+        ),
+    )
+    password = forms.CharField(
+        label="كلمة المرور",
+        strip=False,
+        widget=forms.PasswordInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "كلمة المرور",
+                "autocomplete": "current-password",
+            }
+        ),
+    )
+
+    error_messages = {
+        "invalid_login": "تعذر تسجيل الدخول. تأكد من بيانات الحساب ثم أعد المحاولة.",
+        "inactive": "هذا الحساب غير نشط حالياً.",
+    }
+
+    def __init__(self, request=None, *args, **kwargs):
+        self.request = request
+        self.user_cache = None
+        super().__init__(*args, **kwargs)
+
+    def clean(self):
+        cleaned_data = super().clean()
+        identifier = cleaned_data.get("identifier", "").strip()
+        password = cleaned_data.get("password")
+        if not identifier or not password:
+            return cleaned_data
+
+        candidate = User.objects.filter(
+            Q(username__iexact=identifier) | Q(email__iexact=identifier)
+        ).order_by("id").first()
+        if candidate is not None:
+            self.user_cache = authenticate(
+                self.request,
+                username=candidate.get_username(),
+                password=password,
+            )
+        if self.user_cache is None:
+            raise forms.ValidationError(self.error_messages["invalid_login"])
+        if not self.user_cache.is_active:
+            raise forms.ValidationError(self.error_messages["inactive"])
+        return cleaned_data
+
+    def get_user(self):
+        return self.user_cache
 
 
 class CategoryForm(forms.ModelForm):

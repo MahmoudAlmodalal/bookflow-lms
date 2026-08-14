@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}إنشاء حساب · BookFlow LMS{% endblock %}
+{% block breadcrumb %}إنشاء حساب{% endblock %}
+
+{% block content %}
+<section class="auth-layout">
+    <div class="auth-intro">
+        <p class="eyebrow">حساب BookFlow</p>
+        <h1>احفظ سلتك واطلب بثقة.</h1>
+        <p>أنشئ حساباً مجانياً لتصبح سلة الكتب مرتبطة بحسابك، وتستطيع الوصول إلى سجل طلباتك التجريبية في أي وقت.</p>
+        <div class="auth-benefits" aria-label="مزايا الحساب">
+            <div><span>✓</span><p><strong>سلة شخصية</strong><small>تبقى عناوينك المختارة مرتبطة بحسابك.</small></p></div>
+            <div><span>✓</span><p><strong>سجل طلبات واضح</strong><small>راجع الطلبات التجريبية ومحتوياتها من مكان واحد.</small></p></div>
+            <div><span>✓</span><p><strong>أمان Django المدمج</strong><small>تحفظ كلمات المرور بطريقة مشفرة وآمنة.</small></p></div>
+        </div>
+    </div>
+
+    <article class="auth-card">
+        <div class="auth-card-heading">
+            <span class="auth-icon" aria-hidden="true">✦</span>
+            <div><h2>إنشاء حساب جديد</h2><p>أدخل بياناتك الأساسية للبدء.</p></div>
+        </div>
+        <form method="post" novalidate>
+            {% csrf_token %}
+            {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
+            {% if form.non_field_errors %}<div class="form-error-summary">{{ form.non_field_errors }}</div>{% endif %}
+            {% for field in form %}
+                <div class="field">
+                    {{ field.label_tag }}
+                    {{ field }}
+                    {% if field.errors %}<div class="field-error">{{ field.errors|striptags }}</div>{% endif %}
+                </div>
+            {% endfor %}
+            <p class="password-note">استخدم 8 أحرف على الأقل، وتجنب الكلمات الشائعة أو البيانات السهلة التخمين.</p>
+            <button class="btn btn-primary btn-block" type="submit">إنشاء الحساب وتسجيل الدخول ←</button>
+        </form>
+        <p class="auth-switch">لديك حساب بالفعل؟ <a href="{% url 'login' %}{% if next_url %}?next={{ next_url|urlencode }}{% endif %}">سجّل الدخول</a></p>
+    </article>
+</section>
+{% endblock %}

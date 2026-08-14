@@ -3,13 +3,17 @@
 from decimal import Decimal, InvalidOperation
 
 from django.contrib import messages
+from django.contrib.auth import login, logout
+from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.db.models import Avg, Count, DecimalField, Q, Sum
 from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.http import url_has_allowed_host_and_scheme
+from django.views.decorators.http import require_POST
 
-from .forms import BookForm, CategoryForm, CheckoutForm, ReviewForm
-from .models import Book, Category, Order, OrderItem
+from .forms import BookForm, CategoryForm, CheckoutForm, LoginForm, RegisterForm, ReviewForm
+from .models import Book, CartItem, Category, Order, OrderItem
 
 
 CART_SESSION_KEY = "bookflow_cart_book_ids"
@@ -67,8 +71,8 @@ def _dashboard_context(*, book_form=None, category_form=None):
     }
 
 
-def _cart_ids(request):
-    """Return the session cart as unique, valid integers in insertion order."""
+def _session_cart_ids(request):
+    """Return the anonymous session cart as unique, valid integers in insertion order."""
     raw_ids = request.session.get(CART_SESSION_KEY, [])
     ids = []
     for value in raw_ids:
@@ -80,25 +84,85 @@ def _cart_ids(request):
             ids.append(book_id)
     if ids != raw_ids:
         request.session[CART_SESSION_KEY] = ids
+        request.session.modified = True
     return ids
 
 
-def _save_cart(request, book_ids):
+def _save_session_cart(request, book_ids):
     request.session[CART_SESSION_KEY] = list(dict.fromkeys(book_ids))
     request.session.modified = True
 
 
+def _merge_session_cart_to_user(request):
+    """Move anonymous cart rows into the authenticated user's persistent cart."""
+    if not request.user.is_authenticated:
+        return
+    guest_ids = _session_cart_ids(request)
+    if not guest_ids:
+        return
+    valid_ids = set(Book.objects.filter(id__in=guest_ids).values_list("id", flat=True))
+    CartItem.objects.bulk_create(
+        [CartItem(user=request.user, book_id=book_id) for book_id in guest_ids if book_id in valid_ids],
+        ignore_conflicts=True,
+    )
+    _save_session_cart(request, [])
+
+
+def _cart_ids(request):
+    """Return the active cart, using the account cart after authentication."""
+    if request.user.is_authenticated:
+        _merge_session_cart_to_user(request)
+        return list(
+            CartItem.objects.filter(user=request.user)
+            .order_by("created_at", "id")
+            .values_list("book_id", flat=True)
+        )
+    return _session_cart_ids(request)
+
+
+def _save_cart(request, book_ids):
+    unique_ids = list(dict.fromkeys(book_ids))
+    if not request.user.is_authenticated:
+        _save_session_cart(request, unique_ids)
+        return
+
+    cart_items = CartItem.objects.filter(user=request.user)
+    if unique_ids:
+        cart_items.exclude(book_id__in=unique_ids).delete()
+    else:
+        cart_items.delete()
+    CartItem.objects.bulk_create(
+        [CartItem(user=request.user, book_id=book_id) for book_id in unique_ids],
+        ignore_conflicts=True,
+    )
+
+
 def _cart_summary(request):
-    """Build purchasable cart rows from the session and reconcile stale items."""
+    """Build purchasable cart rows and remove stale or no-longer-sellable books."""
     cart_ids = _cart_ids(request)
     books = Book.objects.filter(id__in=cart_ids).select_related("category")
     books_by_id = {book.id: book for book in books}
-    items = [books_by_id[book_id] for book_id in cart_ids if book_id in books_by_id and books_by_id[book_id].is_purchasable]
+    items = [
+        books_by_id[book_id]
+        for book_id in cart_ids
+        if book_id in books_by_id and books_by_id[book_id].is_purchasable
+    ]
     valid_ids = [book.id for book in items]
     if valid_ids != cart_ids:
         _save_cart(request, valid_ids)
     total = sum((book.price for book in items), Decimal("0.00"))
     return items, total
+
+
+def _safe_next_url(request, candidate):
+    """Accept only same-site return URLs to prevent open redirects."""
+    if candidate and url_has_allowed_host_and_scheme(
+        candidate,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return candidate
+    return ""
 
 
 def index(request):
@@ -243,11 +307,10 @@ def book_detail(request, id):
     )
 
 
+@require_POST
 def add_to_cart(request, id):
-    if request.method != "POST":
-        return redirect("book-detail", id=id)
     book_instance = get_object_or_404(Book, id=id)
-    next_url = request.POST.get("next", "")
+    next_url = _safe_next_url(request, request.POST.get("next", ""))
     if not book_instance.is_purchasable:
         messages.error(request, "هذا الكتاب غير متاح للشراء حالياً.")
         return redirect(next_url) if next_url else redirect("book-detail", id=id)
@@ -261,11 +324,11 @@ def add_to_cart(request, id):
     return redirect(next_url) if next_url else redirect("cart")
 
 
+@require_POST
 def remove_from_cart(request, id):
-    if request.method == "POST":
-        cart_ids = [book_id for book_id in _cart_ids(request) if book_id != id]
-        _save_cart(request, cart_ids)
-        messages.success(request, "تمت إزالة الكتاب من سلة الطلب.")
+    cart_ids = [book_id for book_id in _cart_ids(request) if book_id != id]
+    _save_cart(request, cart_ids)
+    messages.success(request, "تمت إزالة الكتاب من سلة الطلب.")
     return redirect("cart")
 
 
@@ -274,13 +337,19 @@ def cart(request):
     return render(request, "pages/cart.html", {"items": items, "subtotal": subtotal})
 
 
+@login_required
 def checkout(request):
     items, subtotal = _cart_summary(request)
     if not items:
         messages.info(request, "سلة الطلب فارغة. أضف كتاباً متاحاً أولاً.")
         return redirect("book")
 
-    form = CheckoutForm()
+    form = CheckoutForm(
+        initial={
+            "customer_name": request.user.get_full_name() or request.user.username,
+            "customer_email": request.user.email,
+        }
+    )
     if request.method == "POST":
         form = CheckoutForm(request.POST)
         if form.is_valid():
@@ -298,6 +367,7 @@ def checkout(request):
 
                 locked_total = sum((locked_by_id[item.id].price for item in items), Decimal("0.00"))
                 order = form.save(commit=False)
+                order.user = request.user
                 order.subtotal = locked_total
                 order.payment_status = "simulated_paid"
                 order.save()
@@ -325,9 +395,54 @@ def checkout(request):
     )
 
 
+@login_required
 def order_success(request, reference):
-    order = get_object_or_404(Order.objects.prefetch_related("items"), reference=reference)
+    order = get_object_or_404(
+        Order.objects.prefetch_related("items"),
+        reference=reference,
+        user=request.user,
+    )
     return render(request, "pages/order_success.html", {"order": order})
+
+
+@login_required
+def my_orders(request):
+    orders = request.user.bookflow_orders.prefetch_related("items").all()
+    return render(request, "pages/my_orders.html", {"orders": orders})
+
+
+def register_view(request):
+    if request.user.is_authenticated:
+        return redirect("index")
+    next_url = _safe_next_url(request, request.POST.get("next") or request.GET.get("next", ""))
+    form = RegisterForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        user = form.save()
+        login(request, user)
+        _merge_session_cart_to_user(request)
+        messages.success(request, f"مرحباً {user.username}، تم إنشاء حسابك وتسجيل الدخول بنجاح.")
+        return redirect(next_url or "cart")
+    return render(request, "pages/register.html", {"form": form, "next_url": next_url})
+
+
+def login_view(request):
+    if request.user.is_authenticated:
+        return redirect("index")
+    next_url = _safe_next_url(request, request.POST.get("next") or request.GET.get("next", ""))
+    form = LoginForm(request, request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        login(request, form.get_user())
+        _merge_session_cart_to_user(request)
+        messages.success(request, f"أهلاً بعودتك، {request.user.username}.")
+        return redirect(next_url or "cart")
+    return render(request, "pages/login.html", {"form": form, "next_url": next_url})
+
+
+@require_POST
+def logout_view(request):
+    logout(request)
+    messages.info(request, "تم تسجيل الخروج بنجاح. تبقى سلتك المرتبطة بالحساب محفوظة عند عودتك.")
+    return redirect("index")
 
 
 def update(request, id):

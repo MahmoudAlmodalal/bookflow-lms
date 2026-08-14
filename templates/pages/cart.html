@@ -9,6 +9,7 @@
         <p class="eyebrow">الطلب</p>
         <h1>سلة الطلب</h1>
         <p>راجع العناوين المتاحة قبل الانتقال إلى إتمام الدفع التجريبي.</p>
+        {% if request.user.is_authenticated %}<p class="account-context">هذه السلة محفوظة ضمن حساب <strong>{{ request.user.username }}</strong>.</p>{% else %}<p class="account-context">يمكنك التصفح كزائر، ثم سجّل الدخول لحفظ السلة ومتابعة الدفع.</p>{% endif %}
     </div>
     <a class="btn btn-light" href="{% url 'book' %}">← العودة إلى الكتالوج</a>
 </div>
@@ -31,11 +32,15 @@
         <div class="summary-row"><span>العناوين</span><strong>{{ items|length }}</strong></div>
         <div class="summary-row"><span>الشحن</span><strong>مجاني</strong></div>
         <div class="summary-row total"><span>الإجمالي</span><strong>{{ subtotal }} ر.س</strong></div>
-        <a class="btn btn-primary" href="{% url 'checkout' %}">متابعة إلى الدفع التجريبي ←</a>
+        {% if request.user.is_authenticated %}
+            <a class="btn btn-primary" href="{% url 'checkout' %}">متابعة إلى الدفع التجريبي ←</a>
+        {% else %}
+            <a class="btn btn-primary" href="{% url 'login' %}?next={% url 'checkout' %}">سجّل الدخول للمتابعة ←</a>
+        {% endif %}
         <p class="demo-payment-note"><strong>تنبيه:</strong> هذه رحلة شراء تجريبية. لن تُطلب أو تُخزّن أي بيانات بطاقات بنكية.</p>
     </aside>
 </section>
 {% else %}
-<div class="empty-state"><div class="empty-icon">🛒</div><h3>سلة الطلب فارغة</h3><p>أضف كتاباً متاحاً بسعر بيع من الكتالوج لبدء طلب تجريبي.</p><a class="btn btn-primary" href="{% url 'book' %}">استعراض الكتالوج</a></div>
+<div class="empty-state"><div class="empty-icon">🛒</div><h3>سلة الطلب فارغة</h3><p>{% if request.user.is_authenticated %}تُحفظ الكتب التي تضيفها داخل حساب {{ request.user.username }}.{% else %}أضف كتاباً متاحاً بسعر بيع، ثم سجّل الدخول لحفظه في حسابك.{% endif %}</p><a class="btn btn-primary" href="{% url 'book' %}">استعراض الكتالوج</a></div>
 {% endif %}
 {% endblock %}

@@ -13,7 +13,11 @@ urlpatterns = [
     path("cart/", views.cart, name="cart"),
     path("cart/remove/<int:id>/", views.remove_from_cart, name="remove-from-cart"),
     path("checkout/", views.checkout, name="checkout"),
+    path("orders/", views.my_orders, name="my-orders"),
     path("orders/<uuid:reference>/success/", views.order_success, name="order-success"),
+    path("auth/register/", views.register_view, name="register"),
+    path("auth/login/", views.login_view, name="login"),
+    path("auth/logout/", views.logout_view, name="logout"),
     path("books/<int:id>/edit/", views.update, name="update"),
     path("books/<int:id>/delete/", views.delete, name="delete"),
     # Compatibility routes for links from older versions of the project.
