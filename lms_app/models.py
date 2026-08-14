@@ -92,3 +92,42 @@ class Book(models.Model):
         if self.statas == self.STATUS_RENTED:
             return self.total_rental_price
         return None
+
+
+class Review(models.Model):
+    """A reader review and rating submitted from a book detail page."""
+
+    RATING_CHOICES = tuple((value, f"{value} نجوم") for value in range(1, 6))
+
+    book = models.ForeignKey(
+        Book,
+        verbose_name="الكتاب",
+        on_delete=models.CASCADE,
+        related_name="reviews",
+    )
+    reviewer_name = models.CharField("اسم المراجع", max_length=80)
+    rating = models.PositiveSmallIntegerField("التقييم", choices=RATING_CHOICES)
+    comment = models.TextField("المراجعة", max_length=1000)
+    created_at = models.DateTimeField("تاريخ الإضافة", auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+        verbose_name = "مراجعة"
+        verbose_name_plural = "المراجعات"
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(rating__gte=1, rating__lte=5),
+                name="review_rating_between_1_and_5",
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.book.title} — {self.reviewer_name} ({self.rating}/5)"
+
+    @property
+    def filled_stars(self) -> str:
+        return "★" * self.rating
+
+    @property
+    def empty_stars(self) -> str:
+        return "☆" * (5 - self.rating)

@@ -1,10 +1,10 @@
 """Views for the BookFlow inventory dashboard."""
 
 from django.contrib import messages
-from django.db.models import Count, Q, Sum
+from django.db.models import Avg, Count, Q, Sum
 from django.shortcuts import get_object_or_404, redirect, render
 
-from .forms import BookForm, CategoryForm
+from .forms import BookForm, CategoryForm, ReviewForm
 from .models import Book, Category
 
 
@@ -91,7 +91,9 @@ def book(request):
     query = request.GET.get("q", "").strip()
     status = request.GET.get("status", "").strip()
     category_id = request.GET.get("category", "").strip()
-    books = Book.objects.select_related("category").all()
+    books = Book.objects.select_related("category").annotate(
+        average_rating=Avg("reviews__rating"), review_count=Count("reviews")
+    )
 
     if query:
         books = books.filter(Q(title__icontains=query) | Q(author__icontains=query))
@@ -110,6 +112,53 @@ def book(request):
         "category_form": CategoryForm(),
     }
     return render(request, "pages/book.html", context)
+
+
+def book_detail(request, id):
+    """Show one book with its reader feedback and a review submission form."""
+    book_instance = get_object_or_404(Book.objects.select_related("category"), id=id)
+    reviews = book_instance.reviews.all()
+    review_form = ReviewForm()
+
+    if request.method == "POST":
+        review_form = ReviewForm(request.POST)
+        if review_form.is_valid():
+            review = review_form.save(commit=False)
+            review.book = book_instance
+            review.save()
+            messages.success(request, "شكراً لمراجعتك. تم نشر تقييمك بنجاح.")
+            return redirect("book-detail", id=book_instance.id)
+        messages.error(request, "راجِع الحقول المحددة ثم أعد إرسال مراجعتك.")
+
+    summary = reviews.aggregate(average_rating=Avg("rating"), review_count=Count("id"))
+    average_rating = summary["average_rating"] or 0
+    rating_counts = {rating: 0 for rating in range(1, 6)}
+    for row in reviews.values("rating").annotate(count=Count("id")):
+        rating_counts[row["rating"]] = row["count"]
+    review_count = summary["review_count"]
+    rating_breakdown = [
+        {
+            "rating": rating,
+            "count": rating_counts[rating],
+            "percent": round(rating_counts[rating] / max(review_count, 1) * 100),
+        }
+        for rating in range(5, 0, -1)
+    ]
+
+    return render(
+        request,
+        "pages/book_detail.html",
+        {
+            "book": book_instance,
+            "reviews": reviews,
+            "review_form": review_form,
+            "average_rating": average_rating,
+            "average_rating_display": f"{average_rating:.1f}",
+            "rating_percent": round(average_rating / 5 * 100),
+            "review_count": review_count,
+            "rating_breakdown": rating_breakdown,
+        },
+    )
 
 
 def update(request, id):

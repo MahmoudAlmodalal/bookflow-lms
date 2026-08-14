@@ -43,11 +43,12 @@
                 <div class="book-meta"><span class="book-category">{{ book.category|default:"بدون تصنيف" }}</span><span class="status-chip {{ book.status_class }}">{{ book.status_label }}</span></div>
                 <h3 title="{{ book.title }}">{{ book.title }}</h3>
                 <p class="book-author">{{ book.author|default:"المؤلف غير مضاف" }}</p>
+                <div class="catalog-rating">{% if book.review_count %}<span>★ {{ book.average_rating|floatformat:1 }}</span><small>{{ book.review_count }} مراجعة</small>{% else %}<span class="muted-rating">☆ جديد</span><small>لا توجد مراجعات بعد</small>{% endif %}</div>
                 <div class="book-details">
                     <span><strong>{{ book.pages|default:"—" }}</strong>صفحة</span>
                     <span><strong>{% if book.price %}{{ book.price }}{% elif book.retal_price_day %}{{ book.retal_price_day }}{% else %}—{% endif %}</strong>{% if book.price %}ر.س{% elif book.retal_price_day %}ر.س / يوم{% else %}السعر{% endif %}</span>
                 </div>
-                <div class="book-actions"><a class="btn btn-light" href="{% url 'update' book.id %}">تعديل</a><a class="btn btn-danger" href="{% url 'delete' book.id %}">حذف</a></div>
+                <div class="book-actions"><a class="btn btn-light" href="{% url 'book-detail' book.id %}">التفاصيل</a><a class="btn btn-light" href="{% url 'update' book.id %}">تعديل</a><a class="btn btn-danger" href="{% url 'delete' book.id %}">حذف</a></div>
             </div>
         </article>
     {% endfor %}

@@ -3,7 +3,7 @@ from decimal import Decimal
 from django.test import TestCase
 from django.urls import reverse
 
-from .models import Book, Category
+from .models import Book, Category, Review
 
 
 class LibraryDashboardTests(TestCase):
@@ -67,6 +67,39 @@ class LibraryDashboardTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "كتاب مباع")
         self.assertNotContains(response, "كتاب تجريبي")
+
+    def test_book_detail_calculates_reader_ratings(self):
+        Review.objects.create(book=self.book, reviewer_name="سارة", rating=5, comment="كتاب واضح ومفيد جداً للقارئ الجديد.")
+        Review.objects.create(book=self.book, reviewer_name="عمر", rating=3, comment="أفكاره جيدة لكن بعض الأجزاء تحتاج مزيداً من الأمثلة.")
+
+        response = self.client.get(reverse("book-detail", args=[self.book.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "تجارب حقيقية مع الكتاب")
+        self.assertEqual(response.context["review_count"], 2)
+        self.assertEqual(response.context["average_rating_display"], "4.0")
+        self.assertEqual(response.context["rating_breakdown"][0]["count"], 1)
+
+    def test_book_detail_can_submit_a_valid_review(self):
+        response = self.client.post(
+            reverse("book-detail", args=[self.book.pk]),
+            {"reviewer_name": "ليان", "rating": 4, "comment": "قراءة ممتعة ومنظمة مع أمثلة عملية مفيدة."},
+        )
+
+        self.assertRedirects(response, reverse("book-detail", args=[self.book.pk]))
+        review = Review.objects.get(book=self.book)
+        self.assertEqual(review.reviewer_name, "ليان")
+        self.assertEqual(review.rating, 4)
+
+    def test_book_detail_rejects_a_short_review(self):
+        response = self.client.post(
+            reverse("book-detail", args=[self.book.pk]),
+            {"reviewer_name": "ليان", "rating": 4, "comment": "قصير"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "لا تقل عن 12 حرفاً")
+        self.assertFalse(Review.objects.filter(book=self.book).exists())
 
     def test_book_can_be_updated_and_deleted(self):
         update_response = self.client.post(

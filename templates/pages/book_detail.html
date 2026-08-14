@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block title %}{{ book.title }} · BookFlow LMS{% endblock %}
+{% block breadcrumb %}<a href="{% url 'book' %}">كتالوج الكتب</a> <span class="breadcrumb-separator">/</span> {{ book.title }}{% endblock %}
+
+{% block content %}
+<div class="detail-back"><a href="{% url 'book' %}">← العودة إلى الكتالوج</a></div>
+
+<section class="book-detail-hero">
+    <div class="detail-cover-wrap">
+        {% if book.photo_book %}
+            <div class="detail-cover has-image" style="background-image: linear-gradient(180deg, rgba(12,21,39,.06), rgba(12,21,39,.82)), url('{{ book.photo_book.url }}');">
+        {% else %}
+            <div class="detail-cover">
+        {% endif %}
+            <span class="detail-cover-kicker">BOOKFLOW LIBRARY</span>
+            <h1>{{ book.title }}</h1>
+            <span class="detail-cover-author">{{ book.author|default:"المؤلف غير مضاف" }}</span>
+        </div>
+    </div>
+
+    <div class="detail-main">
+        <p class="eyebrow">{{ book.category|default:"بدون تصنيف" }}</p>
+        <div class="detail-title-row"><h1>{{ book.title }}</h1><span class="status-chip {{ book.status_class }}">{{ book.status_label }}</span></div>
+        <p class="detail-author">بواسطة <strong>{{ book.author|default:"المؤلف غير مضاف" }}</strong></p>
+        <p class="detail-description">استكشف تفاصيل هذا العنوان، واطّلع على تقييمات القرّاء قبل إضافته إلى خطتك للقراءة أو متابعته ضمن مخزون المكتبة.</p>
+
+        <div class="detail-facts" aria-label="بيانات الكتاب">
+            <div><span>عدد الصفحات</span><strong>{{ book.pages|default:"—" }}</strong></div>
+            <div><span>سعر البيع</span><strong>{% if book.price %}{{ book.price }} ر.س{% else %}—{% endif %}</strong></div>
+            <div><span>الإعارة اليومية</span><strong>{% if book.retal_price_day %}{{ book.retal_price_day }} ر.س{% else %}—{% endif %}</strong></div>
+            <div><span>مدة الإعارة</span><strong>{% if book.rental_period %}{{ book.rental_period }} أيام{% else %}—{% endif %}</strong></div>
+        </div>
+
+        <div class="detail-actions"><a class="btn btn-primary" href="#write-review">✦ أضف مراجعتك</a><a class="btn btn-light" href="{% url 'update' book.id %}">تعديل بيانات الكتاب</a></div>
+    </div>
+
+    <aside class="rating-summary-card" aria-label="ملخص التقييم">
+        <p class="eyebrow">رأي القراء</p>
+        <div class="rating-overview"><strong>{{ average_rating_display }}</strong><span>/ 5</span></div>
+        <div class="rating-stars large" aria-label="متوسط التقييم {{ average_rating_display }} من 5">★★★★★</div>
+        <p class="review-count">{{ review_count }} مراجعة منشورة</p>
+        <div class="rating-meter"><span style="width: {{ rating_percent }}%"></span></div>
+        <p class="rating-hint">المتوسط محسوب من تقييمات القرّاء المسجلة لهذا الكتاب.</p>
+    </aside>
+</section>
+
+<section class="review-workspace">
+    <article class="reviews-panel">
+        <div class="section-heading review-heading"><div><p class="eyebrow">مراجعات القرّاء</p><h2>تجارب حقيقية مع الكتاب</h2><p>{{ review_count }} مراجعة تساعد القارئ على تكوين صورة أوضح.</p></div></div>
+
+        <div class="rating-breakdown" aria-label="توزيع التقييمات">
+            {% for bucket in rating_breakdown %}
+                <div class="rating-breakdown-row"><span>{{ bucket.rating }} ★</span><div class="breakdown-track"><i style="width: {{ bucket.percent }}%"></i></div><strong>{{ bucket.count }}</strong></div>
+            {% endfor %}
+        </div>
+
+        <div class="review-list">
+            {% for review in reviews %}
+                <article class="reader-review">
+                    <div class="review-avatar">{{ review.reviewer_name|first }}</div>
+                    <div class="review-content">
+                        <div class="review-meta"><div><strong>{{ review.reviewer_name }}</strong><span>{{ review.created_at|date:"j M Y" }}</span></div><span class="review-stars" aria-label="{{ review.rating }} من 5">{{ review.filled_stars }}{{ review.empty_stars }}</span></div>
+                        <p>{{ review.comment|linebreaksbr }}</p>
+                    </div>
+                </article>
+            {% empty %}
+                <div class="empty-reviews"><span>☆</span><h3>كن أول من يكتب مراجعة</h3><p>شارك رأيك لمساعدة القارئ التالي في اكتشاف هذا العنوان.</p></div>
+            {% endfor %}
+        </div>
+    </article>
+
+    <aside class="review-form-card" id="write-review">
+        <p class="eyebrow">مشاركتك مهمة</p>
+        <h2>اكتب مراجعتك</h2>
+        <p>أضف تقييماً صادقاً ومختصراً يساعد القرّاء الآخرين.</p>
+        <form method="post" novalidate>
+            {% csrf_token %}
+            {% for field in review_form %}
+                <div class="field">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% for error in field.errors %}<span class="field-error">{{ error }}</span>{% endfor %}
+                </div>
+            {% endfor %}
+            <div class="rating-preview" id="rating-preview" aria-live="polite"><span>★★★★★</span><b>اختر تقييماً من 1 إلى 5</b></div>
+            <button class="btn btn-primary btn-block" type="submit">نشر المراجعة</button>
+        </form>
+    </aside>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    const ratingSelect = document.getElementById('rating-select');
+    const ratingPreview = document.getElementById('rating-preview');
+    if (ratingSelect && ratingPreview) {
+        const refreshRatingPreview = () => {
+            const value = Number(ratingSelect.value || 0);
+            ratingPreview.querySelector('span').textContent = `${'★'.repeat(value)}${'☆'.repeat(5 - value)}`;
+            ratingPreview.querySelector('b').textContent = value ? `${value} من 5 نجوم` : 'اختر تقييماً من 1 إلى 5';
+        };
+        ratingSelect.addEventListener('change', refreshRatingPreview);
+        refreshRatingPreview();
+    }
+</script>
+{% endblock %}
