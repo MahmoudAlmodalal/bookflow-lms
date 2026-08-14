@@ -2,6 +2,7 @@
 
 import uuid
 
+from django.conf import settings
 from django.db import models
 
 
@@ -146,6 +147,15 @@ class Review(models.Model):
 class Order(models.Model):
     """A completed BookFlow demo order with no real payment data."""
 
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        verbose_name="صاحب الطلب",
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name="bookflow_orders",
+    )
+
     PAYMENT_CARD = "mock_card"
     PAYMENT_WALLET = "mock_wallet"
     PAYMENT_CHOICES = (
@@ -174,6 +184,35 @@ class Order(models.Model):
     @property
     def item_count(self) -> int:
         return self.items.count()
+
+
+class CartItem(models.Model):
+    """A persistent, account-owned item waiting in a reader's cart."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        verbose_name="صاحب السلة",
+        on_delete=models.CASCADE,
+        related_name="bookflow_cart_items",
+    )
+    book = models.ForeignKey(
+        Book,
+        verbose_name="الكتاب",
+        on_delete=models.CASCADE,
+        related_name="cart_items",
+    )
+    created_at = models.DateTimeField("تاريخ الإضافة", auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at", "id"]
+        verbose_name = "عنصر سلة"
+        verbose_name_plural = "عناصر السلال"
+        constraints = [
+            models.UniqueConstraint(fields=["user", "book"], name="unique_user_cart_book")
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.user.username} — {self.book.title}"
 
 
 class OrderItem(models.Model):

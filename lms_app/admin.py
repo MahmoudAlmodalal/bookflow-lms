@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Book, Category, Order, OrderItem, Review
+from .models import Book, CartItem, Category, Order, OrderItem, Review
 
 
 @admin.register(Category)
@@ -35,8 +35,18 @@ class OrderItemInline(admin.TabularInline):
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ("__str__", "customer_name", "customer_email", "subtotal", "payment_method", "payment_status", "created_at")
+    list_display = ("__str__", "user", "customer_name", "customer_email", "subtotal", "payment_method", "payment_status", "created_at")
     list_filter = ("payment_method", "payment_status", "created_at")
-    search_fields = ("customer_name", "customer_email", "customer_phone", "reference")
+    search_fields = ("user__username", "customer_name", "customer_email", "customer_phone", "reference")
     readonly_fields = ("reference", "subtotal", "payment_status", "created_at")
+    list_select_related = ("user",)
     inlines = (OrderItemInline,)
+
+
+@admin.register(CartItem)
+class CartItemAdmin(admin.ModelAdmin):
+    list_display = ("user", "book", "created_at")
+    list_filter = ("created_at",)
+    search_fields = ("user__username", "book__title")
+    list_select_related = ("user", "book")
+    readonly_fields = ("created_at",)
