@@ -33,7 +33,7 @@
   const renderAuthSlot = slot => {
     const user = getUser();
     slot.innerHTML = user
-      ? `<div class="demo-user"><span class="demo-avatar">${escapeHtml(user.name.slice(0, 1).toUpperCase())}</span><div><strong>${escapeHtml(user.name)}</strong><small>حساب محلي نشط</small></div><button type="button" data-demo-logout>تسجيل الخروج</button></div>`
+      ? `<div class="demo-user"><span class="demo-avatar">${escapeHtml(user.name.slice(0, 1).toUpperCase())}</span><div><strong>${escapeHtml(user.name)}</strong><small>حساب محلي نشط</small></div><a href="profile.html" class="demo-account-link">الملف الشخصي</a><button type="button" data-demo-logout>تسجيل الخروج</button></div>`
       : `<a href="auth.html" class="demo-auth-link">تسجيل الدخول</a><a href="auth.html?mode=register" class="demo-auth-link demo-auth-primary">إنشاء حساب</a>`;
   };
   const escapeHtml = value => String(value).replace(/[&<>'"]/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;","\"":"&quot;"}[char]));
@@ -86,7 +86,25 @@
     updateUI();
     return { ok: true, user };
   };
+  const updateProfile = ({ name, email }) => {
+    const current = getUser();
+    if (!current) return { ok: false, message: "سجّل الدخول إلى الحساب التجريبي أولاً." };
+    const cleanName = normaliseName(name);
+    const cleanEmail = normaliseEmail(email);
+    if (cleanName.length < 2 || !/^\S+@\S+\.\S+$/.test(cleanEmail)) {
+      return { ok: false, message: "أدخل اسماً واضحاً وبريداً إلكترونياً بصيغة صحيحة." };
+    }
+    const users = getUsers();
+    if (users.some(user => user.id !== current.id && user.email === cleanEmail)) {
+      return { ok: false, message: "يوجد حساب تجريبي آخر بهذا البريد الإلكتروني." };
+    }
+    const updated = { ...current, name: cleanName, email: cleanEmail };
+    saveUsers(users.map(user => user.id === current.id ? updated : user));
+    localStorage.setItem(USER_KEY, JSON.stringify(updated));
+    updateUI();
+    return { ok: true, user: updated };
+  };
 
-  window.BookFlowDemo = { getUser, getCart, saveCart, register, login, updateUI, escapeHtml };
+  window.BookFlowDemo = { getUser, getCart, saveCart, register, login, updateProfile, updateUI, escapeHtml };
   document.addEventListener("DOMContentLoaded", updateUI);
 })();
