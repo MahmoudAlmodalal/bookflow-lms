@@ -3,7 +3,7 @@
 from decimal import Decimal, InvalidOperation
 
 from django.contrib import messages
-from django.contrib.auth import login, logout
+from django.contrib.auth import login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.db.models import Avg, Count, DecimalField, Q, Sum
@@ -12,7 +12,16 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
-from .forms import BookForm, CategoryForm, CheckoutForm, LoginForm, RegisterForm, ReviewForm
+from .forms import (
+    BookFlowPasswordChangeForm,
+    BookForm,
+    CategoryForm,
+    CheckoutForm,
+    LoginForm,
+    ProfileForm,
+    RegisterForm,
+    ReviewForm,
+)
 from .models import Book, CartItem, Category, Order, OrderItem
 
 
@@ -409,6 +418,27 @@ def order_success(request, reference):
 def my_orders(request):
     orders = request.user.bookflow_orders.prefetch_related("items").all()
     return render(request, "pages/my_orders.html", {"orders": orders})
+
+
+@login_required
+def profile_view(request):
+    form = ProfileForm(request.POST or None, instance=request.user)
+    if request.method == "POST" and form.is_valid():
+        user = form.save()
+        messages.success(request, "تم تحديث بيانات ملفك الشخصي بنجاح.")
+        return redirect("profile")
+    return render(request, "pages/profile.html", {"form": form})
+
+
+@login_required
+def password_change_view(request):
+    form = BookFlowPasswordChangeForm(request.user, request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        user = form.save()
+        update_session_auth_hash(request, user)
+        messages.success(request, "تم تغيير كلمة المرور بنجاح، وما زلت مسجلاً في حسابك.")
+        return redirect("profile")
+    return render(request, "pages/password_change.html", {"form": form})
 
 
 def register_view(request):

@@ -193,6 +193,98 @@ class LibraryDashboardTests(TestCase):
         self.client.force_login(other_user)
         self.assertEqual(self.client.get(reverse("order-success", args=[order.reference])).status_code, 404)
 
+    def test_authenticated_user_can_update_profile_details(self):
+        user = User.objects.create_user(
+            username="profile_reader",
+            email="profile@example.com",
+            password=self.password,
+        )
+        self.client.force_login(user)
+
+        response = self.client.post(
+            reverse("profile"),
+            {
+                "username": "profile_updated",
+                "email": "updated@example.com",
+                "first_name": "ريم",
+                "last_name": "العتيبي",
+            },
+        )
+
+        self.assertRedirects(response, reverse("profile"))
+        user.refresh_from_db()
+        self.assertEqual(user.username, "profile_updated")
+        self.assertEqual(user.email, "updated@example.com")
+        self.assertEqual(user.get_full_name(), "ريم العتيبي")
+
+    def test_profile_rejects_an_email_used_by_another_account(self):
+        user = User.objects.create_user(
+            username="profile_reader",
+            email="profile@example.com",
+            password=self.password,
+        )
+        User.objects.create_user(
+            username="another_reader",
+            email="taken@example.com",
+            password=self.password,
+        )
+        self.client.force_login(user)
+
+        response = self.client.post(
+            reverse("profile"),
+            {
+                "username": "profile_reader",
+                "email": "taken@example.com",
+                "first_name": "",
+                "last_name": "",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "يوجد حساب آخر مسجل بهذا البريد الإلكتروني")
+        user.refresh_from_db()
+        self.assertEqual(user.email, "profile@example.com")
+
+    def test_password_change_requires_current_password_and_keeps_session(self):
+        user = User.objects.create_user(
+            username="password_reader",
+            email="password@example.com",
+            password=self.password,
+        )
+        self.client.force_login(user)
+
+        invalid_response = self.client.post(
+            reverse("password-change"),
+            {
+                "old_password": "wrong-current-password",
+                "new_password1": "NewBookFlow!2026",
+                "new_password2": "NewBookFlow!2026",
+            },
+        )
+        self.assertEqual(invalid_response.status_code, 200)
+        self.assertContains(invalid_response, "كلمة مرورك القديمة غير صحيحة")
+
+        response = self.client.post(
+            reverse("password-change"),
+            {
+                "old_password": self.password,
+                "new_password1": "NewBookFlow!2026",
+                "new_password2": "NewBookFlow!2026",
+            },
+        )
+
+        self.assertRedirects(response, reverse("profile"))
+        user.refresh_from_db()
+        self.assertTrue(user.check_password("NewBookFlow!2026"))
+        self.assertFalse(user.check_password(self.password))
+        self.assertEqual(self.client.get(reverse("profile")).status_code, 200)
+
+    def test_account_settings_require_login(self):
+        profile_response = self.client.get(reverse("profile"))
+        password_response = self.client.get(reverse("password-change"))
+        self.assertRedirects(profile_response, f"{reverse('login')}?next={reverse('profile')}")
+        self.assertRedirects(password_response, f"{reverse('login')}?next={reverse('password-change')}")
+
     def test_book_detail_calculates_reader_ratings(self):
         Review.objects.create(book=self.book, reviewer_name="سارة", rating=5, comment="كتاب واضح ومفيد جداً للقارئ الجديد.")
         Review.objects.create(book=self.book, reviewer_name="عمر", rating=3, comment="أفكاره جيدة لكن بعض الأجزاء تحتاج مزيداً من الأمثلة.")

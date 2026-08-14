@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}ملفي الشخصي · BookFlow LMS{% endblock %}
+{% block breadcrumb %}ملفي الشخصي{% endblock %}
+
+{% block content %}
+<section class="account-page-layout">
+    <div class="account-page-intro">
+        <p class="eyebrow">إعدادات الحساب</p>
+        <h1>ملفك الشخصي، بصوتك.</h1>
+        <p>حدّث بيانات حسابك الأساسية لتظهر بصورة صحيحة في تجربة BookFlow وسجل طلباتك التجريبية.</p>
+        <div class="account-summary-card">
+            <span class="profile-avatar-large">{{ request.user.username|slice:':1'|upper }}</span>
+            <div><strong>{{ request.user.username }}</strong><small>{{ request.user.email|default:"لم تتم إضافة بريد" }}</small></div>
+        </div>
+        <div class="account-security-card"><span>⌁</span><p><strong>حماية الحساب</strong><small>يمكنك تغيير كلمة المرور من الصفحة المخصصة دون مغادرة حسابك.</small></p></div>
+    </div>
+
+    <article class="account-form-card">
+        <div class="auth-card-heading"><span class="auth-icon" aria-hidden="true">✎</span><div><h2>تعديل البيانات</h2><p>تُحدّث هذه البيانات حساب Django الخاص بك.</p></div></div>
+        <form method="post" novalidate>
+            {% csrf_token %}
+            {% if form.non_field_errors %}<div class="form-error-summary">{{ form.non_field_errors }}</div>{% endif %}
+            {% for field in form %}
+                <div class="field">
+                    {{ field.label_tag }}
+                    {{ field }}
+                    {% if field.errors %}<div class="field-error">{{ field.errors|striptags }}</div>{% endif %}
+                </div>
+            {% endfor %}
+            <div class="form-actions"><a class="btn btn-light" href="{% url 'my-orders' %}">إلغاء</a><button class="btn btn-primary" type="submit">حفظ التغييرات ←</button></div>
+        </form>
+        <div class="password-action"><div><strong>تحتاج إلى تغيير كلمة المرور؟</strong><small>استخدم كلمة المرور الحالية للتحقق قبل تعيين كلمة جديدة.</small></div><a class="btn btn-light" href="{% url 'password-change' %}">تغيير كلمة المرور</a></div>
+    </article>
+</section>
+{% endblock %}

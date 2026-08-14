@@ -18,6 +18,8 @@ urlpatterns = [
     path("auth/register/", views.register_view, name="register"),
     path("auth/login/", views.login_view, name="login"),
     path("auth/logout/", views.logout_view, name="logout"),
+    path("auth/profile/", views.profile_view, name="profile"),
+    path("auth/password/", views.password_change_view, name="password-change"),
     path("books/<int:id>/edit/", views.update, name="update"),
     path("books/<int:id>/delete/", views.delete, name="delete"),
     # Compatibility routes for links from older versions of the project.

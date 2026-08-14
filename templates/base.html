@@ -37,6 +37,12 @@
                 <p class="nav-label nav-label-spaced">الحساب</p>
                 {% if request.user.is_authenticated %}
                     <div class="sidebar-user"><span class="sidebar-avatar">{{ request.user.username|slice:':1'|upper }}</span><div><strong>{{ request.user.username }}</strong><small>حساب نشط</small></div></div>
+                    <a class="nav-link {% if request.resolver_match.url_name == 'profile' %}is-active{% endif %}" href="{% url 'profile' %}">
+                        <span class="nav-icon">✎</span><span>ملفي الشخصي</span>
+                    </a>
+                    <a class="nav-link {% if request.resolver_match.url_name == 'password-change' %}is-active{% endif %}" href="{% url 'password-change' %}">
+                        <span class="nav-icon">⌁</span><span>تغيير كلمة المرور</span>
+                    </a>
                     <a class="nav-link {% if request.resolver_match.url_name == 'my-orders' %}is-active{% endif %}" href="{% url 'my-orders' %}">
                         <span class="nav-icon">◷</span><span>طلباتي</span>
                     </a>

@@ -4,7 +4,7 @@ from decimal import Decimal
 
 from django import forms
 from django.contrib.auth import authenticate, get_user_model
-from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.forms import PasswordChangeForm, UserCreationForm
 from django.db.models import Q
 
 from .models import Book, Category, Order, Review
@@ -137,6 +137,69 @@ class LoginForm(forms.Form):
 
     def get_user(self):
         return self.user_cache
+
+
+class ProfileForm(forms.ModelForm):
+    """Edit the authenticated user's public account details."""
+
+    class Meta:
+        model = User
+        fields = ["username", "email", "first_name", "last_name"]
+        labels = {
+            "username": "اسم المستخدم",
+            "email": "البريد الإلكتروني",
+            "first_name": "الاسم الأول",
+            "last_name": "اسم العائلة",
+        }
+        widgets = {
+            "username": forms.TextInput(
+                attrs={"class": "form-control", "autocomplete": "username"}
+            ),
+            "email": forms.EmailInput(
+                attrs={"class": "form-control", "autocomplete": "email"}
+            ),
+            "first_name": forms.TextInput(
+                attrs={"class": "form-control", "autocomplete": "given-name"}
+            ),
+            "last_name": forms.TextInput(
+                attrs={"class": "form-control", "autocomplete": "family-name"}
+            ),
+        }
+
+    def clean_email(self):
+        email = self.cleaned_data["email"].strip().lower()
+        if User.objects.filter(email__iexact=email).exclude(pk=self.instance.pk).exists():
+            raise forms.ValidationError("يوجد حساب آخر مسجل بهذا البريد الإلكتروني.")
+        return email
+
+    def clean_username(self):
+        return self.cleaned_data["username"].strip()
+
+
+class BookFlowPasswordChangeForm(PasswordChangeForm):
+    """Arabic presentation of Django's secure password-change form."""
+
+    old_password = forms.CharField(
+        label="كلمة المرور الحالية",
+        strip=False,
+        widget=forms.PasswordInput(
+            attrs={"class": "form-control", "autocomplete": "current-password"}
+        ),
+    )
+    new_password1 = forms.CharField(
+        label="كلمة المرور الجديدة",
+        strip=False,
+        widget=forms.PasswordInput(
+            attrs={"class": "form-control", "autocomplete": "new-password"}
+        ),
+    )
+    new_password2 = forms.CharField(
+        label="تأكيد كلمة المرور الجديدة",
+        strip=False,
+        widget=forms.PasswordInput(
+            attrs={"class": "form-control", "autocomplete": "new-password"}
+        ),
+    )
 
 
 class CategoryForm(forms.ModelForm):
